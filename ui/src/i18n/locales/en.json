@@ -1,0 +1,208 @@
+{
+  "@agent": {
+    "@create": {
+      "button": "create",
+      "description_label": "description",
+      "description_placeholder": "e.g. A helpful assistant for coding tasks.",
+      "error_generic": "Failed to create agent",
+      "error_unexpected": "An unexpected error occurred",
+      "error_validation": "Please check the form for errors",
+      "instructions_label": "instructions",
+      "instructions_placeholder": "e.g. You are a helpful assistant. Always respond in a polite way.",
+      "model_label": "model",
+      "model_placeholder": "Select a model",
+      "name_label": "name",
+      "name_placeholder": "e.g. Brunito",
+      "success": "Agent created successfully",
+      "title": "New Agent"
+    },
+    "@list": {
+      "create_first": "Create your first agent",
+      "empty_description": "Create your first agent to get started.",
+      "empty_title": "No agents yet.",
+      "model_label": "Model",
+      "new_agent": "New Agent",
+      "no_description": "No description provided.",
+      "title": "My Agents"
+    }
+  },
+  "@chat": {
+    "load_more": "load more"
+  },
+  "@editor": {
+    "@block": {
+      "@action": {
+        "add": "add bellow"
+      }
+    },
+    "@note": {
+      "delete_confirmation": "Are you sure to delete this note?"
+    },
+    "@slash": {
+      "code": "code",
+      "columns": "columns",
+      "copilot": "ask brunito",
+      "heading": "heading",
+      "image": "image",
+      "latex": "math",
+      "page_loop": "loop",
+      "paragraph": "paragraph",
+      "{n}_columns": "{n} columns"
+    },
+    "empty_placeholder": "type / to see the available commands",
+    "heading": "heading"
+  },
+  "@page": {
+    "@loop": {
+      "add_view": "add view",
+      "feed_loop": "feed loop",
+      "tab_loop": "tab loop",
+      "tab_settings": "tab settings",
+      "tab_view": "tab view",
+      "tab_view_settings": "tab view settings"
+    },
+    "@settings": {
+      "@visibility_description": {
+        "default": "The default visibility means that this page is going to be listed to other users so they can find it more easily.",
+        "unlisted": "Unlisted articles/pages are only accessibly by those who have their url directly."
+      },
+      "alias_description": "This is an alternative title to use in sidebar navigation. Useful when the title is too big.",
+      "image_cover_description": "An image to represent the article.",
+      "slug_description": "This is the path in the url leading to this page."
+    },
+    "alias": "alias",
+    "draft": "draft",
+    "release": "release",
+    "release_description": "configure visibility settings before releasing your page",
+    "released": "released",
+    "public": "public",
+    "private_hint": "by default, pages are private — only members of this space can view and access the page.",
+    "public_hint": "this page will be publicly visible — anyone on the platform can view it, including non-members.",
+    "slug": "slug"
+  },
+  "@public": {
+    "@home": {
+      "title": "<d>It's time</d><d>to write!!</d>"
+    }
+  },
+  "@signin": {
+    "with_github": "signin with github",
+    "with_google": "signin with google"
+  },
+  "@space": {
+    "@create": {
+      "title": "create a new space"
+    }
+  },
+  "@theme": {
+    "dark": "dark",
+    "light": "light",
+    "system": "system"
+  },
+  "accept": "accept",
+  "add_attribute": "add attribute",
+  "add_comment": "add comment",
+  "add_new_view": "add new view",
+  "all_articles": "all articles",
+  "all_spaces": "all spaces",
+  "always_hidden": "always hidden",
+  "always_visible": "always visible",
+  "appearance": "appearance",
+  "articles": "articles",
+  "artificial_intelligence_[acronym]": "AI",
+  "available_tags": "available tags",
+  "bio": "bio",
+  "cancel": "cancel",
+  "close": "close",
+  "color": "color",
+  "cover_image": "cover image",
+  "create": "create",
+  "create_note": "create note",
+  "create_sub_page": "create sub-page",
+  "created_at_{date}": "created at {date}",
+  "current_value": "current value",
+  "default": "default",
+  "delete": "delete",
+  "description": "description",
+  "discard": "discard",
+  "dismiss": "dismiss",
+  "edit": "edit",
+  "edit_page_attribute": "edit page attribute",
+  "edit_page_trait": "edit page trait",
+  "edit_tag": "edit tag",
+  "edit_{tag}_tag": "edit \"{tag}\" tag",
+  "enter_a_number": "enter a number",
+  "full": "full",
+  "handle": "handle",
+  "handle_available": "handle is available",
+  "handle_unavailable": "handle is already taken",
+  "highlight": "highlight",
+  "library": "library",
+  "link_copied": "link copied",
+  "media": "media",
+  "multiple": "multiple",
+  "name": "name",
+  "nerd": "nerd",
+  "new": "new",
+  "new_agent": "new agent",
+  "new_article": "new article",
+  "new_page": "new page",
+  "new_page_attribute": "new page attribute",
+  "new_page_trait": "new page attribute",
+  "new_space": "new space",
+  "new_tab": "new tab",
+  "new_tag": "new tag",
+  "new_template": "new template",
+  "no_articles_yet": "no articles yet",
+  "no_available_tags_yet": "no available tags yet",
+  "non_empty": "non empty",
+  "number": "number",
+  "page_attributes": "page attributes",
+  "page_loop": "loop",
+  "page_not_found": "page not found",
+  "page_options": "page options",
+  "page_properties": "page properties",
+  "page_settings": "page settings",
+  "page_traits": "page traits",
+  "pages": "pages",
+  "profile": "profile",
+  "properties": "properties",
+  "publish": "publish",
+  "published_at_{date}": "published at {date}",
+  "release": "release",
+  "released": "released",
+  "released_at_{date}": "released at {date}",
+  "rename": "rename",
+  "review_it": "review",
+  "review_with_ai": "review with AI",
+  "save": "save",
+  "saved": "saved",
+  "saved_at": "saved at",
+  "saved_at_{date}": "saved at {date}",
+  "saving": "saving",
+  "select_a_tag": "select a tag",
+  "select_a_value": "select a value",
+  "send": "send",
+  "set_title": "set title",
+  "settings": "settings",
+  "share": "share",
+  "short_id": "short id",
+  "signin": "signin",
+  "signout": "signout",
+  "size": "size",
+  "spaces": "spaces",
+  "standard": "standard",
+  "status": "status",
+  "subtitle": "subtitle",
+  "suggestion": "suggestion",
+  "tag": "tag",
+  "text": "text",
+  "title": "title",
+  "to_do": "to do",
+  "unlisted": "unlisted",
+  "untitled": "untitled",
+  "updated_at": "updated at",
+  "visibility": "visibility",
+  "wide": "wide",
+  "write": "write"
+}
