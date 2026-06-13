@@ -1,7 +1,9 @@
 # Simian
 
-[![Crates.io](https://img.shields.io/crates/v/simian.svg)](https://crates.io/crates/simian)
 [![CI](https://github.com/nosebit/simian/actions/workflows/ci.yml/badge.svg)](https://github.com/nosebit/simian/actions/workflows/ci.yml)
+[![Docs.rs](https://docs.rs/simian/badge.svg)](https://docs.rs/simian)
+[![Crates.io](https://img.shields.io/crates/v/simian.svg)](https://crates.io/crates/simian)
+[![Crates.io Total Downloads](https://img.shields.io/crates/d/simian)](https://crates.io/crates/simian)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Simian is a modular, high-performance Machine Learning toolkit written in Rust. Designed for experimentation and education, Simian allows you to build, train, and evaluate machine learning models entirely from scratch using native tensor operations and manual backpropagation.
