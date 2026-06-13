@@ -1,8 +1,26 @@
 # Simian
 
+[![Crates.io](https://img.shields.io/crates/v/simian.svg)](https://crates.io/crates/simian)
+[![CI](https://github.com/nosebit/simian/actions/workflows/ci.yml/badge.svg)](https://github.com/nosebit/simian/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Simian is a modular, high-performance Machine Learning toolkit written in Rust. Designed for experimentation and education, Simian allows you to build, train, and evaluate machine learning models entirely from scratch using native tensor operations and manual backpropagation.
 
 Simian provides a powerful **Command Line Interface (CLI)**, a **Rust Library** for integrating ML workflows directly into your own applications, and a **Paper Editor** for creating interactive an ML studies similar to Jupyter Notebooks but with more flexibility and control. Simian papers can be submitted for review and after approval they become public for the entire community to use and experiment with. Published papers can be forked so you can make your own experiments.
+
+## Installation
+
+The easiest way to install Simian on macOS or Linux is via our official installation script:
+
+```bash
+curl -fsSL https://simian.sh/install.sh | bash
+```
+
+Alternatively, you can install the CLI using Cargo:
+
+```bash
+cargo install simian
+```
 
 ## Data Loader
 
