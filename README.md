@@ -1,4 +1,8 @@
-# Simian
+<div align="center">
+  <h1>
+    <img src="assets/logo_w_text.png" alt="Simian Logo" height="100" style="vertical-align: middle;" />
+  </h1>
+</div>
 
 [![CI](https://github.com/nosebit/simian/actions/workflows/ci.yml/badge.svg)](https://github.com/nosebit/simian/actions/workflows/ci.yml)
 [![Docs.rs](https://docs.rs/simian/badge.svg)](https://docs.rs/simian)
