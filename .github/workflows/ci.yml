@@ -7,7 +7,7 @@ on:
   pull_request:
   schedule:
     # Run every Friday at 17:00 UTC to maintain the weekly release train
-    - cron: '0 17 * * 5'
+    - cron: "0 17 * * 5"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -48,9 +48,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './ui/package-lock.json'
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "./ui/package-lock.json"
 
       - name: Install dependencies
         run: npm ci
@@ -76,5 +76,5 @@ jobs:
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PLZ_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
