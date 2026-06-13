@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(name = "simian")]
+#[command(version)]
 #[command(about = "A machine learning CLI app in Rust for learning and experimentation", long_about = None)]
 pub struct Cli {
   #[command(subcommand)]
