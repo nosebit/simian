@@ -339,8 +339,138 @@ pub async fn submit(id: String) -> Result<()> {
     std::fs::write(bundle_dir.join("index.html"), index_html)?;
   }
 
-  tracing::info!("Skipping actual GitHub PR creation for now (repository is not published yet).");
   tracing::info!("Bundle is ready at: {:?}", bundle_dir);
+
+  tracing::info!("Authenticating with GitHub API...");
+  let auth_client = reqwest::Client::builder()
+    .user_agent("Simian-CLI")
+    .default_headers({
+      let mut headers = reqwest::header::HeaderMap::new();
+      headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+      headers.insert("Accept", "application/vnd.github.v3+json".parse().unwrap());
+      headers
+    })
+    .build()?;
+
+  // 1. Get authenticated user
+  tracing::info!("Fetching authenticated user...");
+  let user_res: serde_json::Value = auth_client.get("https://api.github.com/user").send().await?.json().await?;
+  let username = user_res.get("login").and_then(|v| v.as_str()).context("Failed to get GitHub username")?;
+
+  // 2. Fork repository
+  tracing::info!("Ensuring fork of nosebit/simian-papers exists...");
+  let fork_res = auth_client.post("https://api.github.com/repos/nosebit/simian-papers/forks").send().await?;
+  if !fork_res.status().is_success() && fork_res.status() != reqwest::StatusCode::ACCEPTED {
+    anyhow::bail!("Failed to fork repository: {:?}", fork_res.text().await?);
+  }
+  
+  // Wait for fork to be ready (GitHub takes a few seconds)
+  tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+  // 3. Get base commit
+  tracing::info!("Fetching latest commit from main branch...");
+  let ref_url = format!("https://api.github.com/repos/{}/simian-papers/git/ref/heads/main", username);
+  let ref_res: serde_json::Value = auth_client.get(&ref_url).send().await?.json().await?;
+  let base_sha = ref_res.get("object").and_then(|o| o.get("sha")).and_then(|s| s.as_str()).context("Failed to get base commit SHA from your fork. Make sure nosebit/simian-papers has an initial commit!")?;
+
+  // 4. Create blobs and tree
+  tracing::info!("Uploading files to GitHub...");
+  let mut tree_nodes = Vec::new();
+  
+  async fn upload_blob(client: &reqwest::Client, user: &str, content: &[u8]) -> Result<String> {
+    let b64 = {
+        use base64::{Engine as _, engine::general_purpose};
+        general_purpose::STANDARD.encode(content)
+    };
+    let res: serde_json::Value = client.post(&format!("https://api.github.com/repos/{}/simian-papers/git/blobs", user))
+      .json(&serde_json::json!({
+        "content": b64,
+        "encoding": "base64"
+      }))
+      .send().await?.json().await?;
+    res.get("sha").and_then(|s| s.as_str()).map(|s| s.to_string()).context("Failed to upload blob")
+  }
+
+  // Iterate over bundle dir recursively
+  let mut stack = vec![(bundle_dir.clone(), String::new())];
+  while let Some((dir, rel_path)) = stack.pop() {
+    for entry in std::fs::read_dir(dir)? {
+      let entry = entry?;
+      let path = entry.path();
+      let file_name = entry.file_name().to_string_lossy().to_string();
+      let entry_rel = if rel_path.is_empty() { file_name } else { format!("{}/{}", rel_path, file_name) };
+      
+      if path.is_dir() {
+        stack.push((path, entry_rel));
+      } else {
+        let content = std::fs::read(&path)?;
+        let sha = upload_blob(&auth_client, username, &content).await?;
+        let tree_path = format!("papers/{}/{}", id, entry_rel);
+        
+        tree_nodes.push(serde_json::json!({
+          "path": tree_path,
+          "mode": "100644",
+          "type": "blob",
+          "sha": sha
+        }));
+      }
+    }
+  }
+
+  // 5. Create Tree
+  tracing::info!("Creating git tree...");
+  let tree_res: serde_json::Value = auth_client.post(&format!("https://api.github.com/repos/{}/simian-papers/git/trees", username))
+    .json(&serde_json::json!({
+      "base_tree": base_sha,
+      "tree": tree_nodes
+    }))
+    .send().await?.json().await?;
+  let tree_sha = tree_res.get("sha").and_then(|s| s.as_str()).context("Failed to create tree")?;
+
+  // 6. Create Commit
+  tracing::info!("Creating commit...");
+  let commit_res: serde_json::Value = auth_client.post(&format!("https://api.github.com/repos/{}/simian-papers/git/commits", username))
+    .json(&serde_json::json!({
+      "message": format!("Publish paper: {}", id),
+      "tree": tree_sha,
+      "parents": [base_sha]
+    }))
+    .send().await?.json().await?;
+  let commit_sha = commit_res.get("sha").and_then(|s| s.as_str()).context("Failed to create commit")?;
+
+  // 7. Create Branch
+  let branch_name = format!("submit-{}-{}", id, rand::random::<u32>());
+  tracing::info!("Creating branch {}...", branch_name);
+  let branch_res = auth_client.post(&format!("https://api.github.com/repos/{}/simian-papers/git/refs", username))
+    .json(&serde_json::json!({
+      "ref": format!("refs/heads/{}", branch_name),
+      "sha": commit_sha
+    }))
+    .send().await?;
+  if !branch_res.status().is_success() {
+    anyhow::bail!("Failed to create branch: {:?}", branch_res.text().await?);
+  }
+
+  // 8. Create Pull Request
+  tracing::info!("Opening Pull Request on nosebit/simian-papers...");
+  let pr_res = auth_client.post("https://api.github.com/repos/nosebit/simian-papers/pulls")
+    .json(&serde_json::json!({
+      "title": format!("Publish Paper: {}", id),
+      "head": format!("{}:{}", username, branch_name),
+      "base": "main",
+      "body": format!("Automatic submission of paper `{}` via Simian CLI.", id)
+    }))
+    .send().await?;
+  
+  if pr_res.status().is_success() {
+    let pr_json: serde_json::Value = pr_res.json().await?;
+    if let Some(url) = pr_json.get("html_url").and_then(|u| u.as_str()) {
+      tracing::info!("Successfully opened Pull Request: {}", url);
+      let _ = open::that(url);
+    }
+  } else {
+    anyhow::bail!("Failed to open PR: {:?}", pr_res.text().await?);
+  }
 
   Ok(())
 }
