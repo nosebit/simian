@@ -3,13 +3,13 @@ use axum::body::Body;
 use axum::response::Response;
 use axum::{
   Json, Router,
-  extract::State,
+  extract::{Path as AxumPath, State},
   routing::{get, post},
 };
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tower_http::services::{ServeDir, ServeFile};
@@ -30,18 +30,127 @@ pub struct ExecuteResponse {
 
 #[derive(Clone)]
 struct AppState {
-  studio_file: PathBuf,
+  base_dir: PathBuf,
+}
+
+#[derive(Serialize)]
+struct PaperMetadata {
+  id: String,
+  title: String,
+  slug: Option<String>,
+  last_modified: u64,
+}
+
+async fn list_papers(State(state): State<Arc<AppState>>) -> Json<Vec<PaperMetadata>> {
+  let mut papers = Vec::new();
+  if let Ok(entries) = std::fs::read_dir(&state.base_dir) {
+    for entry in entries.flatten() {
+      if entry.path().is_dir() {
+        let source_file = entry.path().join("source.smn");
+        if source_file.exists() {
+          let mut title = String::from("Untitled Paper");
+          let mut slug = None;
+
+          if let Ok(content) = std::fs::read_to_string(&source_file) {
+            if let Ok(ast) = serde_json::from_str::<serde_json::Value>(&content) {
+              if let Some(blocks) = ast.as_array() {
+                for block in blocks {
+                  if block.get("type").and_then(|v| v.as_str()) == Some("title") {
+                    if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+                      let mut t = String::new();
+                      for child in children {
+                        if let Some(text) = child.get("text").and_then(|v| v.as_str()) {
+                          t.push_str(text);
+                        }
+                      }
+                      title = t.trim().to_string();
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
+          let metadata_file = entry.path().join("metadata.json");
+          if let Ok(content) = std::fs::read_to_string(&metadata_file) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+              if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
+                slug = Some(s.to_string());
+              }
+            }
+          }
+
+          let last_modified = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs())
+            .unwrap_or(0);
+
+          papers.push(PaperMetadata {
+            id: entry.file_name().to_string_lossy().to_string(),
+            title,
+            slug,
+            last_modified,
+          });
+        }
+      }
+    }
+  }
+  
+  papers.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
+  Json(papers)
+}
+
+#[derive(Serialize)]
+struct CreatePaperResponse {
+  id: String,
+}
+
+fn create_paper_dir(base_dir: &PathBuf, id: &str) -> anyhow::Result<PathBuf> {
+  let paper_dir = base_dir.join(id);
+  std::fs::create_dir_all(&paper_dir)?;
+  std::fs::create_dir_all(paper_dir.join("assets"))?;
+  std::fs::create_dir_all(paper_dir.join(".local").join("plots"))?;
+  std::fs::create_dir_all(paper_dir.join(".local").join("datasets"))?;
+  std::fs::create_dir_all(paper_dir.join(".local").join("models"))?;
+
+  let default_content = serde_json::json!([
+    {
+      "type": "title",
+      "children": [{ "text": "Untitled Paper" }]
+    },
+    {
+      "type": "code-block",
+      "language": "rust",
+      "children": [{ "text": "println!(\"Hello from Simian Paper!\");" }]
+    }
+  ]);
+  let _ = std::fs::write(
+    paper_dir.join("source.smn"),
+    serde_json::to_string_pretty(&default_content).unwrap(),
+  );
+
+  Ok(paper_dir)
+}
+
+async fn create_paper(State(state): State<Arc<AppState>>) -> Json<CreatePaperResponse> {
+  let id = format!("paper-{:06x}", rand::random::<u32>() & 0xFFFFFF);
+  let _ = create_paper_dir(&state.base_dir, &id);
+  Json(CreatePaperResponse { id })
 }
 
 async fn execute_code(
   State(state): State<Arc<AppState>>,
+  AxumPath(id): AxumPath<String>,
   Json(payload): Json<ExecuteRequest>,
 ) -> Response {
+  let studio_file = state.base_dir.join(&id).join("source.smn");
   let code = payload.code;
   use crossterm::style::Stylize;
   tracing::debug!("Received code to execute:\n{}", code.as_str().dark_grey());
 
-  match sandbox::run_rust_code(&code, &state.studio_file).await {
+  match sandbox::run_rust_code(&code, &studio_file).await {
     Ok(mut child) => {
       let mut stdout = child.stdout.take().unwrap();
       let mut stderr = child.stderr.take().unwrap();
@@ -94,13 +203,18 @@ async fn execute_code(
   }
 }
 
-async fn get_content(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-  if state.studio_file.exists()
-    && let Ok(content) = std::fs::read_to_string(&state.studio_file)
+async fn get_content(
+  State(state): State<Arc<AppState>>,
+  AxumPath(id): AxumPath<String>,
+) -> Json<serde_json::Value> {
+  let studio_file = state.base_dir.join(&id).join("source.smn");
+  if studio_file.exists()
+    && let Ok(content) = std::fs::read_to_string(&studio_file)
     && let Ok(json) = serde_json::from_str(&content)
   {
     return Json(json);
   }
+  
   // Default AST if file is missing or empty
   Json(serde_json::json!([
     {
@@ -119,9 +233,14 @@ async fn get_content(State(state): State<Arc<AppState>>) -> Json<serde_json::Val
   ]))
 }
 
-async fn save_content(State(state): State<Arc<AppState>>, Json(payload): Json<serde_json::Value>) {
+async fn save_content(
+  State(state): State<Arc<AppState>>,
+  AxumPath(id): AxumPath<String>,
+  Json(payload): Json<serde_json::Value>,
+) {
+  let studio_file = state.base_dir.join(&id).join("source.smn");
   if let Ok(content) = serde_json::to_string_pretty(&payload) {
-    let _ = std::fs::write(&state.studio_file, content);
+    let _ = std::fs::write(&studio_file, content);
   }
 }
 
@@ -140,95 +259,6 @@ async fn serve_html(
   }
 }
 
-fn resolve_studio_path(path: Option<String>) -> anyhow::Result<PathBuf> {
-  let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-  let base_dir = home.join(".simian").join("papers");
-
-  let resolved = match path {
-    None => {
-      let random_name = format!("paper-{:06x}", rand::random::<u32>() & 0xFFFFFF);
-      base_dir.join(random_name).join("source.smn")
-    }
-    Some(p) => {
-      // If it explicitly contains path separators, treat it as a direct path
-      if p.contains('/') || p.contains('\\') {
-        let p_path = Path::new(&p);
-        if p.ends_with(".smn") || p.ends_with(".md") {
-          p_path.to_path_buf()
-        } else {
-          p_path.join("source.smn")
-        }
-      } else {
-        // It's just a name like "somepaper".
-        // 1. Check if it exists in the current directory
-        let local_dir = std::env::current_dir()?.join(&p);
-        let simian_dir = base_dir.join(&p);
-
-        if local_dir.exists() {
-          local_dir.join("source.smn")
-        } else if simian_dir.exists() {
-          // 2. Check if it exists in ~/.simian/papers/
-          simian_dir.join("source.smn")
-        } else {
-          // 3. Otherwise, create it in ~/.simian/papers/
-          simian_dir.join("source.smn")
-        }
-      }
-    }
-  };
-
-  if let Some(parent) = resolved.parent() {
-    std::fs::create_dir_all(parent)?;
-    // Create new paper directory structure
-    std::fs::create_dir_all(parent.join("assets"))?;
-    std::fs::create_dir_all(parent.join(".local").join("plots"))?;
-    std::fs::create_dir_all(parent.join(".local").join("datasets"))?;
-    std::fs::create_dir_all(parent.join(".local").join("models"))?;
-  }
-
-  // Ensure absolute path
-  let absolute = if resolved.is_absolute() {
-    resolved
-  } else {
-    std::env::current_dir()?.join(resolved)
-  };
-
-  // Seed the file with default content if it doesn't exist
-  if !absolute.exists() {
-    let name = absolute
-      .parent()
-      .and_then(|p| p.file_name())
-      .and_then(|n| n.to_str())
-      .unwrap_or("Untitled Paper")
-      .replace("-", " ");
-
-    // capitalize
-    let name = name
-      .chars()
-      .enumerate()
-      .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
-      .collect::<String>();
-
-    let default_content = serde_json::json!([
-      {
-        "type": "title",
-        "children": [{ "text": name }]
-      },
-      {
-        "type": "code-block",
-        "language": "rust",
-        "children": [{ "text": "println!(\"Hello from Simian Paper!\");" }]
-      }
-    ]);
-    let _ = std::fs::write(
-      &absolute,
-      serde_json::to_string_pretty(&default_content).unwrap(),
-    );
-  }
-
-  Ok(absolute)
-}
-
 struct ChildGuard(std::process::Child);
 
 impl Drop for ChildGuard {
@@ -239,26 +269,25 @@ impl Drop for ChildGuard {
 }
 
 pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
-  let abs_path = resolve_studio_path(path)?;
-  tracing::info!("Opening Simian Paper: {:?}", abs_path);
+  let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+  let base_dir = home.join(".simian").join("papers");
+  std::fs::create_dir_all(&base_dir)?;
 
   let state = Arc::new(AppState {
-    studio_file: abs_path,
+    base_dir: base_dir.clone(),
   });
 
-  // Pre-compile the sandbox
-  // This forces Cargo to fetch the registry index, generate the Cargo.lock,
-  // and link the initial binary making the user's first Shift+Enter evaluation virtually instantaneous!
-  tracing::info!("Pre-warming sandbox environment...");
-  if let Ok(mut child) = sandbox::run_rust_code("", &state.studio_file).await {
-    let _ = child.wait().await;
+  // If a path was passed explicitly, ensure it exists in base_dir
+  if let Some(ref p) = path {
+    let target = base_dir.join(p);
+    if !target.exists() {
+      let _ = create_paper_dir(&base_dir, p);
+    }
   }
-  tracing::info!("Sandbox pre-warmed and ready!");
 
   let _dev_guard = if dev {
     tracing::info!("Starting UI in development mode (Vite)...");
 
-    // Proactively kill any zombie process holding port 7777
     let _ = std::process::Command::new("sh")
       .arg("-c")
       .arg("lsof -ti:7777 | xargs kill -9 2>/dev/null")
@@ -279,27 +308,23 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
     None
   };
 
-  // Allow CORS for the Vite dev server
   use tower_http::cors::{Any, CorsLayer};
   let cors = CorsLayer::new()
     .allow_origin(Any)
     .allow_headers(Any)
     .allow_methods(Any);
 
-  // Setup the API router
   let api_router = Router::new()
-    .route("/execute", post(execute_code))
-    .route("/paper/content", get(get_content).post(save_content))
+    .route("/papers", get(list_papers).post(create_paper))
+    .route("/execute/{id}", post(execute_code))
+    .route("/paper/{id}/content", get(get_content).post(save_content))
     .route("/html", get(serve_html))
     .with_state(state.clone());
 
-  // Determine the path to the UI assets.
-  // In development, this relies on `simian` being run from the repo root.
   let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui/dist");
   let serve_dir =
     ServeDir::new(&ui_dir).not_found_service(ServeFile::new(ui_dir.join("index.html")));
 
-  // The main router
   let app = Router::new()
     .nest("/api", api_router)
     .fallback_service(serve_dir)
@@ -316,6 +341,14 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
   }
 
   let listener = tokio::net::TcpListener::bind(addr).await?;
+  
+  // Automatically open browser
+  if let Some(p) = path {
+    let _ = open::that(format!("http://127.0.0.1:7777/{}", p));
+  } else {
+    let _ = open::that("http://127.0.0.1:7777/");
+  }
+
   axum::serve(listener, app).await?;
 
   Ok(())

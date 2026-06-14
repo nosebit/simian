@@ -19,7 +19,8 @@ export const executeCodeBlock = async (editor: Editor, path: Path) => {
   Transforms.setNodes(editor, { isEvaluating: true }, { at: path })
 
   try {
-    const response = await fetch('/api/execute', {
+    const id = window.location.pathname.substring(1)
+    const response = await fetch(`/api/execute/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: fullCode }),

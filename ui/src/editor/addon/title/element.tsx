@@ -105,7 +105,7 @@ export const Title: FC<ElementProps<'title'>> = ({
       element={element}
       {...attributes}
       className={clsx([
-        'relative group gap-2 mb-6',
+        'relative group gap-2 mb-12',
         //"pl-10 -ml-10",
       ])}
       actionClassName="md:-translate-x-full pr-2 top-1.5"
@@ -114,7 +114,7 @@ export const Title: FC<ElementProps<'title'>> = ({
       <h1
         className={clsx([
           'leading-[1.2] min-w-px',
-          'outline-none text-4xl font-extrabold tracking-tight',
+          'outline-none text-5xl font-extrabold tracking-tight',
           // "mb-15 text-5xl font-extrabold tracking-tight",
           isEmpty ? 'relative' : '',
         ])}
