@@ -8,11 +8,11 @@ import './App.css'
 
 declare global {
   interface Window {
-    __SIMIAN_PAPER_DATA__?: any;
+    __SIMIAN_PAPER_DATA__?: any
     __SIMIAN_PAPER_METADATA__?: {
-      authors?: number[];
-      slug?: string;
-    };
+      authors?: number[]
+      slug?: string
+    }
   }
 }
 

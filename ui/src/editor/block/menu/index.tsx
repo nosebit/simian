@@ -23,8 +23,7 @@ const DefaultMenuButton: FC<BlockMenuButtonProps> = ({ item, ...props }) => {
       onClick={item.onClick ?? props.onClick}
       variant="ghost"
       size="icon"
-      // @ts-ignore
-className={clsx(
+      className={clsx(
         'h-8 w-8 rounded-full transition-colors duration-200',
 
         // LIGHT MODE (Dark Menu):
@@ -118,22 +117,31 @@ export const BlockMenu: FC<BlockMenuProps> = ({
             [
               {
                 id: 'width-standard',
-                icon: <WidthStandard // @ts-ignore
-className="h-4 w-4" />,
+                icon: (
+                  <WidthStandard // @ts-expect-error
+                    className="h-4 w-4"
+                  />
+                ),
                 isActive: !ctx.width || ctx.width === 'standard',
                 onClick: () => setWidth('standard'),
               },
               {
                 id: 'width-wide',
-                icon: <WidthWide // @ts-ignore
-className="h-4 w-4" />,
+                icon: (
+                  <WidthWide // @ts-expect-error
+                    className="h-4 w-4"
+                  />
+                ),
                 isActive: ctx.width === 'wide',
                 onClick: () => setWidth('wide'),
               },
               {
                 id: 'width-full',
-                icon: <WidthFull // @ts-ignore
-className="h-4 w-4" />,
+                icon: (
+                  <WidthFull // @ts-expect-error
+                    className="h-4 w-4"
+                  />
+                ),
                 isActive: ctx.width === 'full',
                 onClick: () => setWidth('full'),
               },
@@ -189,13 +197,11 @@ className="h-4 w-4" />,
   }
 
   return (
-    <div // @ts-ignore
-className="relative" onMouseLeave={handleMouseLeave}>
+    <div className="relative" onMouseLeave={handleMouseLeave}>
       {/* Floating Menu */}
       {mode !== 'read' && (
         <div
-          // @ts-ignore
-className={clsx(
+          className={clsx(
             // "bg-yellow-400",
             'absolute -top-12 left-0 w-full h-12 z-10',
             'flex items-start justify-center', // Centering logic
@@ -205,8 +211,7 @@ className={clsx(
         >
           {/* THE ACTUAL MENU */}
           <div
-            // @ts-ignore
-className={clsx(
+            className={clsx(
               'flex items-center gap-1 p-1 rounded-full border shadow-xl',
               'transition-all duration-200 ease-out',
 
@@ -225,8 +230,7 @@ className={clsx(
               <Fragment key={`group-${items[0].id}`}>
                 {idx > 0 ? (
                   <div
-                    // @ts-ignore
-className={clsx([
+                    className={clsx([
                       'w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1',
                     ])}
                   />
@@ -253,8 +257,8 @@ className={clsx([
 
       {/* Main Content */}
       <div
-        //// @ts-ignore
-className="bg-blue-400"
+        //// @ts-expect-error
+        className="bg-blue-400"
         onMouseEnter={handleMouseEnter}
       >
         {children}

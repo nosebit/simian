@@ -1,10 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import _ from 'lodash'
 
-export type Translator = (
-  key: string,
-  values?: Record<string, any>,
-) => string
+export type Translator = (key: string, values?: Record<string, any>) => string
 
 export const titleCase = (s: string) =>
   s

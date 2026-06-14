@@ -14,6 +14,41 @@ use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tower_http::services::{ServeDir, ServeFile};
 
+#[derive(rust_embed::RustEmbed)]
+#[folder = "ui/dist/"]
+pub struct UiAssets;
+
+async fn embedded_serve(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
+  let mut path = uri.path().trim_start_matches('/');
+  if path.is_empty() {
+    path = "index.html";
+  }
+
+  match UiAssets::get(path) {
+    Some(content) => {
+      let mime = mime_guess::from_path(path).first_or_octet_stream();
+      axum::response::Response::builder()
+        .header(axum::http::header::CONTENT_TYPE, mime.as_ref())
+        .body(Body::from(content.data.into_owned()))
+        .unwrap()
+    }
+    None => {
+      if let Some(content) = UiAssets::get("index.html") {
+        let mime = mime_guess::from_path("index.html").first_or_octet_stream();
+        axum::response::Response::builder()
+          .header(axum::http::header::CONTENT_TYPE, mime.as_ref())
+          .body(Body::from(content.data.into_owned()))
+          .unwrap()
+      } else {
+        axum::response::Response::builder()
+          .status(axum::http::StatusCode::NOT_FOUND)
+          .body(Body::from("404 Not Found"))
+          .unwrap()
+      }
+    }
+  }
+}
+
 pub mod sandbox;
 
 #[derive(Deserialize)]
@@ -45,40 +80,43 @@ async fn list_papers(State(state): State<Arc<AppState>>) -> Json<Vec<PaperMetada
   let mut papers = Vec::new();
   if let Ok(entries) = std::fs::read_dir(&state.base_dir) {
     for entry in entries.flatten() {
+      if let Ok(file_type) = entry.file_type()
+        && file_type.is_symlink()
+      {
+        continue;
+      }
       if entry.path().is_dir() {
         let source_file = entry.path().join("source.smn");
         if source_file.exists() {
           let mut title = String::from("Untitled Paper");
           let mut slug = None;
 
-          if let Ok(content) = std::fs::read_to_string(&source_file) {
-            if let Ok(ast) = serde_json::from_str::<serde_json::Value>(&content) {
-              if let Some(blocks) = ast.as_array() {
-                for block in blocks {
-                  if block.get("type").and_then(|v| v.as_str()) == Some("title") {
-                    if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
-                      let mut t = String::new();
-                      for child in children {
-                        if let Some(text) = child.get("text").and_then(|v| v.as_str()) {
-                          t.push_str(text);
-                        }
-                      }
-                      title = t.trim().to_string();
+          if let Ok(content) = std::fs::read_to_string(&source_file)
+            && let Ok(ast) = serde_json::from_str::<serde_json::Value>(&content)
+            && let Some(blocks) = ast.as_array()
+          {
+            for block in blocks {
+              if block.get("type").and_then(|v| v.as_str()) == Some("title") {
+                if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+                  let mut t = String::new();
+                  for child in children {
+                    if let Some(text) = child.get("text").and_then(|v| v.as_str()) {
+                      t.push_str(text);
                     }
-                    break;
                   }
+                  title = t.trim().to_string();
                 }
+                break;
               }
             }
           }
 
           let metadata_file = entry.path().join("metadata.json");
-          if let Ok(content) = std::fs::read_to_string(&metadata_file) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-              if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
-                slug = Some(s.to_string());
-              }
-            }
+          if let Ok(content) = std::fs::read_to_string(&metadata_file)
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+            && let Some(s) = json.get("slug").and_then(|v| v.as_str())
+          {
+            slug = Some(s.to_string());
           }
 
           let last_modified = entry
@@ -97,8 +135,8 @@ async fn list_papers(State(state): State<Arc<AppState>>) -> Json<Vec<PaperMetada
       }
     }
   }
-  
-  papers.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
+
+  papers.sort_by_key(|b| std::cmp::Reverse(b.last_modified));
   Json(papers)
 }
 
@@ -107,7 +145,7 @@ struct CreatePaperResponse {
   id: String,
 }
 
-fn create_paper_dir(base_dir: &PathBuf, id: &str) -> anyhow::Result<PathBuf> {
+fn create_paper_dir(base_dir: &std::path::Path, id: &str) -> anyhow::Result<PathBuf> {
   let paper_dir = base_dir.join(id);
   std::fs::create_dir_all(&paper_dir)?;
   std::fs::create_dir_all(paper_dir.join("assets"))?;
@@ -214,7 +252,7 @@ async fn get_content(
   {
     return Json(json);
   }
-  
+
   // Default AST if file is missing or empty
   Json(serde_json::json!([
     {
@@ -295,7 +333,7 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
 
     let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui");
     let vite_bin = ui_dir.join("node_modules/.bin/vite");
-    
+
     let child = std::process::Command::new(vite_bin)
       .current_dir(&ui_dir)
       .stdout(std::process::Stdio::null())
@@ -321,14 +359,20 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
     .route("/html", get(serve_html))
     .with_state(state.clone());
 
-  let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui/dist");
-  let serve_dir =
-    ServeDir::new(&ui_dir).not_found_service(ServeFile::new(ui_dir.join("index.html")));
-
-  let app = Router::new()
-    .nest("/api", api_router)
-    .fallback_service(serve_dir)
-    .layer(cors);
+  let app = if dev {
+    let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui/dist");
+    let serve_dir =
+      ServeDir::new(&ui_dir).not_found_service(ServeFile::new(ui_dir.join("index.html")));
+    Router::new()
+      .nest("/api", api_router)
+      .fallback_service(serve_dir)
+      .layer(cors)
+  } else {
+    Router::new()
+      .nest("/api", api_router)
+      .fallback(embedded_serve)
+      .layer(cors)
+  };
 
   let api_port = if dev { 3000 } else { 7777 };
   let addr = SocketAddr::from(([127, 0, 0, 1], api_port));
@@ -341,7 +385,7 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
   }
 
   let listener = tokio::net::TcpListener::bind(addr).await?;
-  
+
   // Automatically open browser
   if let Some(p) = path {
     let _ = open::that(format!("http://127.0.0.1:7777/{}", p));

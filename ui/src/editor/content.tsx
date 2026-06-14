@@ -19,7 +19,7 @@ function executeDecorate<T extends EditorAddon>(
 
   // Inside this function, 'T' is a specific member of the union.
   // Therefore, 'addon' matches the 'Addon' generic in 'AddonBase<Id, Addon>'
-   
+
   const ctx: AddonHandlerContext<T, 'decorate', any> = {
     addon,
     editor,
@@ -32,7 +32,6 @@ function executeDecorate<T extends EditorAddon>(
     decorate: () => [], // The "original" handler if needed
   }
 
-   
   return addon.decorate(ctx as any, entry)
 }
 

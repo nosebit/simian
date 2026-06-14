@@ -15,7 +15,10 @@ export const CodeBlockElementSchema = BlockBaseSchema.extend({
   children: z
     .array(TextSchema)
     .describe('Inline elements that compose this code-block content.'),
-  isEvaluating: z.boolean().optional().describe('Whether the code block is currently being evaluated.'),
+  isEvaluating: z
+    .boolean()
+    .optional()
+    .describe('Whether the code block is currently being evaluated.'),
   language: z
     .enum(languages)
     .describe(
@@ -26,12 +29,14 @@ export const CodeBlockElementSchema = BlockBaseSchema.extend({
       stdout: z.string(),
       stderr: z.string(),
       success: z.boolean(),
-      items: z.array(
-        z.object({
-          url: z.string(),
-          state: z.any().optional(),
-        })
-      ).optional(),
+      items: z
+        .array(
+          z.object({
+            url: z.string(),
+            state: z.any().optional(),
+          }),
+        )
+        .optional(),
     })
     .nullable()
     .optional(),

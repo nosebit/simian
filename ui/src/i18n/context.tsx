@@ -12,9 +12,7 @@ export const I18nProvider: React.FC<{
   children: React.ReactNode
   dict?: Dictionary
 }> = ({ children, dict = enDict }) => {
-  return (
-    <I18nContext.Provider value={dict}>{children}</I18nContext.Provider>
-  )
+  return <I18nContext.Provider value={dict}>{children}</I18nContext.Provider>
 }
 
 export function useTranslations(namespace?: string): ExtendedTranslator {

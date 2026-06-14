@@ -7,7 +7,6 @@ type DeepPath<T, D extends number = 2> = [D] extends [never]
   ? never
   : T extends object
     ? {
-         
         [K in keyof T & string]: NonNullable<T[K]> extends Date | Array<any>
           ? K
           : NonNullable<T[K]> extends object
@@ -73,7 +72,6 @@ export function contextualizeBuilder<
         // Memoize the selection logic to prevent re-renders unless the
         // specific values picked from context actually change.
         const pickedValues = useMemo(() => {
-           
           const result = {} as any
           keys.forEach((path) => {
             const camelKey = path.replace(/\.([a-z])/g, (g) =>
@@ -82,7 +80,7 @@ export function contextualizeBuilder<
 
             result[camelKey] = path
               .split('.')
-               
+
               .reduce((acc, part) => (acc as any)?.[part], context)
           })
           return result
@@ -90,7 +88,6 @@ export function contextualizeBuilder<
           context,
           // eslint-disable-next-line react-hooks/exhaustive-deps
           ...keys.map((k) =>
-             
             k.split('.').reduce((acc, part) => (acc as any)?.[part], context),
           ),
         ])

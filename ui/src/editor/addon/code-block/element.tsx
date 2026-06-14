@@ -11,67 +11,161 @@ import { useTheme } from 'next-themes'
 import { Play, Loader2 } from 'lucide-react'
 
 import { ghDarkDimmed, ghDarkHighContrast } from './utils/highlighter'
-import { CodeBlockElement } from './types'
+
 import { executeCodeBlock } from './utils/execute'
 
-const OutputItem = ({ item, idx, iframeRefs }: { item: { url: string; state?: any }, idx: number, iframeRefs: React.MutableRefObject<(HTMLIFrameElement | null)[]> }) => {
-  const [inferredType, setInferredType] = useState<string | null>(null);
+const OutputItem = ({
+  item,
+  idx,
+  iframeRefs,
+}: {
+  item: { url: string; state?: any }
+  idx: number
+  iframeRefs: React.MutableRefObject<(HTMLIFrameElement | null)[]>
+}) => {
+  const [inferredType, setInferredType] = useState<string | null>(null)
 
   useEffect(() => {
-    const url = item.url;
-    if (url.startsWith('data:image')) { setInferredType('image'); return; }
-    if (url.startsWith('data:video')) { setInferredType('video'); return; }
-    if (url.startsWith('data:application/pdf')) { setInferredType('pdf'); return; }
-    if (url.includes('youtube.com/embed') || url.includes('youtu.be/')) { setInferredType('video'); return; }
-    if (url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i)) { setInferredType('image'); return; }
-    if (url.match(/\.(mp4|webm|ogg)$/i)) { setInferredType('video'); return; }
-    if (url.match(/\.pdf$/i)) { setInferredType('pdf'); return; }
-    if (url.startsWith('data:text/html')) { setInferredType('iframe'); return; }
+    const url = item.url
+    const timer = setTimeout(() => {
+      if (url.startsWith('data:image')) {
+        setInferredType('image')
+        return
+      }
+      if (url.startsWith('data:video')) {
+        setInferredType('video')
+        return
+      }
+      if (url.startsWith('data:application/pdf')) {
+        setInferredType('pdf')
+        return
+      }
+      if (url.includes('youtube.com/embed') || url.includes('youtu.be/')) {
+        setInferredType('video')
+        return
+      }
+      if (url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i)) {
+        setInferredType('image')
+        return
+      }
+      if (url.match(/\.(mp4|webm|ogg)$/i)) {
+        setInferredType('video')
+        return
+      }
+      if (url.match(/\.pdf$/i)) {
+        setInferredType('pdf')
+        return
+      }
+      if (url.startsWith('data:text/html')) {
+        setInferredType('html')
+        return
+      }
 
-    if (url.startsWith('http')) {
-      fetch(url, { method: 'HEAD' })
-        .then(res => {
-          const contentType = res.headers.get('content-type');
-          if (contentType?.startsWith('image/')) setInferredType('image');
-          else if (contentType?.startsWith('video/')) setInferredType('video');
-          else if (contentType?.startsWith('application/pdf')) setInferredType('pdf');
-          else setInferredType('iframe');
-        })
-        .catch(() => {
-          setInferredType('iframe');
-        });
-    } else {
-      setInferredType('iframe');
+      if (url.startsWith('http')) {
+        fetch(url, { method: 'HEAD' })
+          .then((res) => {
+            const contentType = res.headers.get('content-type')
+            if (contentType?.startsWith('image/')) setInferredType('image')
+            else if (contentType?.startsWith('video/')) setInferredType('video')
+            else if (contentType?.startsWith('application/pdf'))
+              setInferredType('pdf')
+            else setInferredType('html')
+          })
+          .catch(() => {
+            setInferredType('html')
+          })
+      } else {
+        setInferredType('html')
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [item.url])
+
+  let iframeSrc = item.url
+  if (inferredType === 'video' && item.url.includes('youtu.be/')) {
+    const videoId = item.url.split('youtu.be/')[1]?.split('?')[0]
+    if (videoId) {
+      iframeSrc = `https://www.youtube.com/embed/${videoId}`
     }
-  }, [item.url]);
+  } else if (
+    inferredType === 'video' &&
+    item.url.includes('youtube.com/watch')
+  ) {
+    const urlObj = new URL(item.url)
+    const videoId = urlObj.searchParams.get('v')
+    if (videoId) {
+      iframeSrc = `https://www.youtube.com/embed/${videoId}`
+    }
+  } else if (inferredType === 'html' && item.state) {
+    try {
+      iframeSrc = `${item.url}#${btoa(JSON.stringify(item.state))}`
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    const handleMessage = () => {
+      console.debug('message received')
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   if (!inferredType) {
-    return <div className="flex justify-center my-4"><Loader2 className="animate-spin text-gray-400" /></div>;
+    return (
+      <div className="flex justify-center my-4">
+        <Loader2 className="animate-spin text-gray-400" />
+      </div>
+    )
   }
 
-  const url = item.url;
   if (inferredType === 'image') {
-    return <img src={url} className="w-full h-auto object-contain my-4 rounded shadow-sm mx-auto" alt="Output Media" />;
-  } else if (inferredType === 'video' || inferredType === 'iframe') {
-    let iframeSrc = url;
-    if (item.state) {
-      try {
-        iframeSrc = `${url}#${btoa(JSON.stringify(item.state))}`;
-      } catch(e) {}
-    }
     return (
-      <iframe 
-        ref={(el) => { iframeRefs.current[idx] = el; }}
-        src={iframeSrc} 
-        className="w-full h-[600px] border rounded-md my-4 shadow-sm bg-white" 
-        title="Interactive Output" 
-        allowFullScreen 
+      <img
+        src={item.url}
+        alt="Interactive Output"
+        className="w-full max-w-full rounded-md my-4 shadow-sm"
       />
-    );
-  } else if (inferredType === 'pdf') {
-    return <object data={url} type="application/pdf" className="w-full h-[600px] my-4 rounded shadow-sm" />;
+    )
   }
-  return null;
+
+  if (inferredType === 'pdf') {
+    return (
+      <iframe
+        src={iframeSrc}
+        className="w-full h-[600px] border rounded-md my-4 shadow-sm bg-white"
+        title="Interactive Output"
+      />
+    )
+  }
+
+  if (inferredType === 'video') {
+    return (
+      <iframe
+        src={iframeSrc}
+        className="w-full h-[600px] border rounded-md my-4 shadow-sm bg-black"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        title="Interactive Output"
+      />
+    )
+  }
+
+  if (inferredType === 'html') {
+    return (
+      <iframe
+        ref={(el) => {
+          // eslint-disable-next-line react-hooks/immutability
+          if (el && iframeRefs?.current) iframeRefs.current[idx] = el
+        }}
+        src={iframeSrc}
+        className="w-full h-[600px] border rounded-md my-4 shadow-sm bg-white"
+        title="Interactive Output"
+      />
+    )
+  }
+  return null
 }
 
 export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
@@ -87,22 +181,30 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
       const handler = (event: MessageEvent) => {
         if (event.data?.type === 'SIMIAN_PLOT_STATE') {
           // Find which iframe sent this
-          const idx = iframeRefs.current.findIndex(ref => ref && ref.contentWindow === event.source);
+          const idx = iframeRefs.current.findIndex(
+            (ref) => ref && ref.contentWindow === event.source,
+          )
           if (idx !== -1 && element.output && element.output.items) {
             try {
-              const path = ReactEditor.findPath(editor, element);
-              const newItems = [...element.output.items];
-              newItems[idx] = { ...newItems[idx], state: event.data.state };
-              Transforms.setNodes(editor, { output: { ...element.output, items: newItems } } as Partial<Node>, { at: path });
+              const path = ReactEditor.findPath(editor, element)
+              const newItems = [...element.output.items]
+              newItems[idx] = { ...newItems[idx], state: event.data.state }
+              Transforms.setNodes(
+                editor,
+                {
+                  output: { ...element.output, items: newItems },
+                } as Partial<Node>,
+                { at: path },
+              )
             } catch (e) {
               console.error('Failed to update plot state', e)
             }
           }
         }
-      };
-      window.addEventListener('message', handler);
-      return () => window.removeEventListener('message', handler);
-    }, [element, editor]);
+      }
+      window.addEventListener('message', handler)
+      return () => window.removeEventListener('message', handler)
+    }, [element, editor])
 
     const [fgColor, bgColor] = useMemo(() => {
       if (themeMode === 'dark') {
@@ -119,11 +221,13 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
     }, [themeMode])
 
     const renderStdout = (stdout: string) => {
-      if (!stdout) return null;
-      return <span className="text-green-500 dark:text-green-400 block whitespace-pre-wrap">{stdout}</span>
+      if (!stdout) return null
+      return (
+        <span className="text-green-500 dark:text-green-400 block whitespace-pre-wrap">
+          {stdout}
+        </span>
+      )
     }
-
-
 
     return (
       <Block
@@ -131,13 +235,18 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
         element={element}
         className={clsx(['relative code-block group/code mb-6'])}
       >
-
-        <div 
-          className={clsx(['relative border shadow-sm', element.output ? 'rounded-t-md border-b-0' : 'rounded-md'])}
+        <div
+          className={clsx([
+            'relative border shadow-sm',
+            element.output ? 'rounded-t-md border-b-0' : 'rounded-md',
+          ])}
           style={{
             color: fgColor,
             backgroundColor: bgColor,
-            borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            borderColor:
+              themeMode === 'dark'
+                ? 'rgba(255,255,255,0.1)'
+                : 'rgba(0,0,0,0.1)',
           }}
         >
           <pre
@@ -162,7 +271,12 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
               </div>
             </div>
 
-            <code className={clsx(['flex-1 not-prose pr-3', jetbrainsMono.className])}>
+            <code
+              className={clsx([
+                'flex-1 not-prose pr-3',
+                jetbrainsMono.className,
+              ])}
+            >
               {children}
             </code>
           </pre>
@@ -178,10 +292,10 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
                 }}
                 disabled={element.isEvaluating}
                 className={clsx(
-                  "p-3 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-10",
+                  'p-3 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-10',
                   element.isEvaluating
-                    ? "bg-orange-500 shadow-orange-500/40 cursor-wait"
-                    : "bg-blue-500 hover:bg-blue-600 shadow-blue-500/40 hover:scale-105 cursor-pointer"
+                    ? 'bg-orange-500 shadow-orange-500/40 cursor-wait'
+                    : 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/40 hover:scale-105 cursor-pointer',
                 )}
               >
                 {element.isEvaluating ? (
@@ -201,18 +315,29 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
             className="border p-4 text-sm font-mono whitespace-pre overflow-x-auto shadow-inner rounded-b-md"
             style={{
               backgroundColor: themeMode === 'dark' ? '#0d1117' : '#f8fafc',
-              borderColor: themeMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              borderColor:
+                themeMode === 'dark'
+                  ? 'rgba(255,255,255,0.1)'
+                  : 'rgba(0,0,0,0.1)',
             }}
           >
             {element.output.success ? (
               <div>
                 {renderStdout(element.output.stdout)}
-                {element.output?.items && element.output.items.map((item, idx) => (
-                  <OutputItem key={idx} item={item} idx={idx} iframeRefs={iframeRefs} />
-                ))}
+                {element.output?.items &&
+                  element.output.items.map((item, idx) => (
+                    <OutputItem
+                      key={idx}
+                      item={item}
+                      idx={idx}
+                      iframeRefs={iframeRefs}
+                    />
+                  ))}
               </div>
             ) : (
-              <span className="text-red-500 dark:text-red-400">{element.output.stderr}</span>
+              <span className="text-red-500 dark:text-red-400">
+                {element.output.stderr}
+              </span>
             )}
           </div>
         )}

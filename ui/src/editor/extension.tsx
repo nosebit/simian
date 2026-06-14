@@ -82,7 +82,6 @@ export const runAddonHandler = <K extends keyof AddonBase>(
     })
 
   for (const addon of addons) {
-     
     const handler = addon[handlerName] as any
 
     if (typeof handler === 'function') {
@@ -360,7 +359,7 @@ export function withAddons(
   // Define the getAddon utility function.
   editor.getAddon = (id) => {
     // We cast to EditorAddon[] to allow the .find logic to work smoothly
-     
+
     return (editor.addons as EditorAddon[]).find((a) => a.id === id) as any
   }
 
@@ -411,7 +410,7 @@ export function withExtensions(editor: Editor, props: ExtensionProps) {
   // Define the getAddon utility function.
   editor.getAddon = (id) => {
     // We cast to EditorAddon[] to allow the .find logic to work smoothly
-     
+
     return (editor.addons as EditorAddon[]).find((a) => a.id === id) as any
   }
 

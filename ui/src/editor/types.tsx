@@ -1,4 +1,3 @@
- 
 import { CSSProperties, PropsWithChildren } from 'react'
 import { BaseEditor, Descendant } from 'slate'
 import { HistoryEditor } from 'slate-history'

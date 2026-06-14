@@ -87,7 +87,7 @@ export const column: SlashAddonCommandFactory<'column', 'text'> = ({
             {
               id: nanoid(),
               type: 'paragraph',
-               
+
               children: existingChildren as any,
             },
           ]

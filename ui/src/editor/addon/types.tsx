@@ -1,5 +1,5 @@
 // @ts-nocheck
- 
+
 import { FC, JSX, PropsWithChildren } from 'react'
 import { Editor, Selection } from 'slate'
 import { Editable, RenderElementProps, RenderLeafProps } from 'slate-react'

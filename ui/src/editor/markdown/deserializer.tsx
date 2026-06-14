@@ -76,7 +76,7 @@ function nodeToSlate(node: MdNode, isFirstH1: boolean): Element[] {
         {
           id: nanoid(),
           type: 'paragraph',
-           
+
           children: inlineChildren(node) as any,
         },
       ]
@@ -118,14 +118,15 @@ function nodeToSlate(node: MdNode, isFirstH1: boolean): Element[] {
       // Depth 2 -> Level 1 (H2)
       // Depth 3 -> Level 2 (H3)
       // Depth 4+ -> Level 3 (H4)
-      const level = node.depth === 1 || node.depth === 2 ? 1 : node.depth === 3 ? 2 : 3
+      const level =
+        node.depth === 1 || node.depth === 2 ? 1 : node.depth === 3 ? 2 : 3
 
       return [
         {
           id: nanoid(),
           type: 'heading',
           level,
-           
+
           children: inlineChildren(node) as any,
         },
       ]

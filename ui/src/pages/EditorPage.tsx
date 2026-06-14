@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, Loader2, Moon, Sun } from 'lucide-react'
-import { Link, useLocation } from 'wouter'
+import { Link } from 'wouter'
 import { useTheme } from 'next-themes'
 import { Editor } from '@/editor'
 import { title } from '@/editor/addon/title'
@@ -19,9 +19,10 @@ let saveTimeout: ReturnType<typeof setTimeout>
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  
+
   useEffect(() => {
-    setMounted(true)
+    const timer = setTimeout(() => setMounted(true), 0)
+    return () => clearTimeout(timer)
   }, [])
 
   if (!mounted) return <div className="w-9 h-9" />
@@ -45,12 +46,16 @@ export function EditorPage({ id }: { id: string }) {
 
   useEffect(() => {
     if (window.__SIMIAN_PAPER_DATA__) {
-      setValue(window.__SIMIAN_PAPER_DATA__)
-      setMode('read')
-      if (window.__SIMIAN_PAPER_METADATA__?.authors) {
-        setAuthors(window.__SIMIAN_PAPER_METADATA__.authors)
-      }
-      setLoading(false)
+      const data = window.__SIMIAN_PAPER_DATA__
+      const metadata = window.__SIMIAN_PAPER_METADATA__
+      setTimeout(() => {
+        setValue(data)
+        setMode('read')
+        if (metadata?.authors) {
+          setAuthors(metadata.authors)
+        }
+        setLoading(false)
+      }, 0)
       return
     }
 
@@ -107,7 +112,8 @@ export function EditorPage({ id }: { id: string }) {
 
       {loading ? (
         <div className="flex items-center justify-center p-12 mt-24 text-muted-foreground">
-          <Loader2 className="animate-spin mr-2" size={20} /> Loading workspace...
+          <Loader2 className="animate-spin mr-2" size={20} /> Loading
+          workspace...
         </div>
       ) : (
         <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8">

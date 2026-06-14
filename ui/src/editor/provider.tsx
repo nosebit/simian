@@ -32,9 +32,8 @@ export const AddonProviders: FC<{
     // 1. Safe check: does the property exist?
     const ContextProvider = addon.ContextProvider as
       | FC<{
-           
           addon: any
-           
+
           setAddon: (cb: (addon: any) => any) => void
           children: React.ReactNode
         }>
@@ -69,7 +68,6 @@ export const AddonCompanions: FC<{ addons: EditorAddon[] }> = ({ addons }) => {
   return (
     <>
       {addons.map((addon) => {
-         
         const Companion = addon.Companion as FC<{ addon: any }> | undefined
 
         if (!Companion) return null

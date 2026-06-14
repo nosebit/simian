@@ -27,9 +27,7 @@ pub fn render(format: RenderFormat, content: &str) {
   );
 }
 
-// Dummy Client ID for Simian CLI GitHub App
-// TODO: Replace with the actual GitHub App Client ID!
-const GITHUB_CLIENT_ID: &str = "YOUR_GITHUB_APP_CLIENT_ID";
+const GITHUB_CLIENT_ID: &str = "Ov23liic5h1kFHG61swj";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DeviceAuthResponse {
@@ -72,6 +70,14 @@ async fn authenticate(client: &Client) -> Result<String> {
     return Ok(stored.access_token);
   }
 
+  let client_id =
+    std::env::var("SIMIAN_GITHUB_CLIENT_ID").unwrap_or_else(|_| GITHUB_CLIENT_ID.to_string());
+  if client_id == "YOUR_GITHUB_APP_CLIENT_ID" {
+    anyhow::bail!(
+      "GitHub Client ID is not configured. Please set the SIMIAN_GITHUB_CLIENT_ID environment variable or update GITHUB_CLIENT_ID in src/paper.rs."
+    );
+  }
+
   tracing::info!("Authenticating with GitHub...");
 
   // 1. Request device code
@@ -79,13 +85,20 @@ async fn authenticate(client: &Client) -> Result<String> {
     .post("https://github.com/login/device/code")
     .header("Accept", "application/json")
     .json(&serde_json::json!({
-        "client_id": GITHUB_CLIENT_ID,
+        "client_id": &client_id,
         "scope": "public_repo",
     }))
     .send()
     .await?;
 
-  let device_auth: DeviceAuthResponse = res.json().await?;
+  let res_body = res.text().await?;
+  let device_auth: DeviceAuthResponse = serde_json::from_str(&res_body).map_err(|e| {
+    anyhow::anyhow!(
+      "Failed to parse GitHub device auth response: {}\nResponse body: {}",
+      e,
+      res_body
+    )
+  })?;
 
   tracing::info!("--------------------------------------------------");
   tracing::info!("Please visit: {}", device_auth.verification_uri);
@@ -104,14 +117,21 @@ async fn authenticate(client: &Client) -> Result<String> {
       .post("https://github.com/login/oauth/access_token")
       .header("Accept", "application/json")
       .json(&serde_json::json!({
-          "client_id": GITHUB_CLIENT_ID,
+          "client_id": &client_id,
           "device_code": &device_auth.device_code,
           "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
       }))
       .send()
       .await?;
 
-    let token_res: AccessTokenResponse = res.json().await?;
+    let res_body = res.text().await?;
+    let token_res: AccessTokenResponse = serde_json::from_str(&res_body).map_err(|e| {
+      anyhow::anyhow!(
+        "Failed to parse GitHub token response: {}\nResponse body: {}",
+        e,
+        res_body
+      )
+    })?;
 
     if let Some(token) = token_res.access_token {
       tracing::info!("Successfully authenticated!");
@@ -193,7 +213,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   tracing::info!("Parsing source.smn and collecting active plots...");
   let source_content = std::fs::read_to_string(&source_file)?;
   let ast: serde_json::Value = serde_json::from_str(&source_content)?;
-  
+
   fn extract_markdown_text(children: &[serde_json::Value]) -> String {
     let mut text = String::new();
     for child in children {
@@ -214,13 +234,13 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   let mut title_text = String::new();
   if let Some(blocks) = ast.as_array() {
     for block in blocks {
-      if let Some(block_type) = block.get("type").and_then(|v| v.as_str()) {
-        if block_type == "title" {
-          if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
-            title_text = extract_markdown_text(children);
-          }
-          break;
+      if let Some(block_type) = block.get("type").and_then(|v| v.as_str())
+        && block_type == "title"
+      {
+        if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+          title_text = extract_markdown_text(children);
         }
+        break;
       }
     }
   }
@@ -230,14 +250,13 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   let mut slug = String::new();
   let mut metadata_json = serde_json::json!({});
 
-  if metadata_path.exists() {
-    if let Ok(content) = std::fs::read_to_string(&metadata_path) {
-      if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-        metadata_json = json.clone();
-        if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
-          slug = s.to_string();
-        }
-      }
+  if metadata_path.exists()
+    && let Ok(content) = std::fs::read_to_string(&metadata_path)
+    && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+  {
+    metadata_json = json.clone();
+    if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
+      slug = s.to_string();
     }
   }
 
@@ -258,7 +277,10 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     };
 
     let confirmation = dialoguer::Confirm::with_theme(&theme)
-      .with_prompt(format!("We extracted the title '{}'. Do you want to publish this paper as `{}`?", title_text, suggested_slug))
+      .with_prompt(format!(
+        "We extracted the title '{}'. Do you want to publish this paper as `{}`?",
+        title_text, suggested_slug
+      ))
       .default(true)
       .interact()?;
 
@@ -287,14 +309,14 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
         headers
       })
       .build()?;
-      
+
     let user_res: serde_json::Value = auth_client
       .get("https://api.github.com/user")
       .send()
       .await?
       .json()
       .await?;
-      
+
     let primary_id = user_res.get("id").and_then(|v| v.as_u64()).context("Failed to get GitHub user ID. Try checking your internet connection or removing ~/.simian/oauth/github.json.")?;
     let mut authors = vec![primary_id];
 
@@ -307,8 +329,12 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       for handle in co_authors.split(',') {
         let handle = handle.trim();
         if !handle.is_empty() {
-          let co_res: serde_json::Value = client.get(format!("https://api.github.com/users/{}", handle))
-            .send().await?.json().await?;
+          let co_res: serde_json::Value = client
+            .get(format!("https://api.github.com/users/{}", handle))
+            .send()
+            .await?
+            .json()
+            .await?;
           if let Some(uid) = co_res.get("id").and_then(|v| v.as_u64()) {
             authors.push(uid);
           } else {
@@ -321,7 +347,10 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     metadata_json["authors"] = serde_json::json!(authors);
   }
 
-  std::fs::write(&metadata_path, serde_json::to_string_pretty(&metadata_json)?)?;
+  std::fs::write(
+    &metadata_path,
+    serde_json::to_string_pretty(&metadata_json)?,
+  )?;
 
   // Create symlink if needed
   if id != slug {
@@ -447,48 +476,73 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   std::fs::write(bundle_dir.join("paper.md"), markdown)?;
   std::fs::copy(&source_file, bundle_dir.join("source.smn"))?;
 
-  tracing::info!("Bundling React App...");
-  let ui_dir = std::env::current_dir()?.join("ui");
-  let dist_dir = ui_dir.join("dist");
+  tracing::info!("Extracting embedded React App...");
 
-  // We assume `npm run build` has already been run in ui/, or we can try to run it:
-  if !dist_dir.exists() {
-    tracing::info!("Building UI...");
-    let status = std::process::Command::new("npm")
-      .arg("run")
-      .arg("build")
-      .current_dir(&ui_dir)
-      .status()?;
-    if !status.success() {
-      anyhow::bail!("Failed to build UI!");
+  for file in crate::studio::UiAssets::iter() {
+    let path_str = file.as_ref();
+    if let Some(content) = crate::studio::UiAssets::get(path_str) {
+      if path_str == "index.html" {
+        let mut index_html = String::from_utf8_lossy(&content.data).into_owned();
+        let ast_json = serde_json::to_string(&ast)?;
+        let metadata_str = serde_json::to_string(&metadata_json)?;
+        let injection = format!(
+          "window.__SIMIAN_PAPER_DATA__ = {};\nwindow.__SIMIAN_PAPER_METADATA__ = {};",
+          ast_json, metadata_str
+        );
+        index_html = index_html.replace("// __SIMIAN_INJECT__", &injection);
+        std::fs::write(bundle_dir.join("index.html"), index_html)?;
+      } else {
+        let out_path = bundle_dir.join(path_str);
+        if let Some(parent) = out_path.parent() {
+          let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&out_path, content.data.as_ref())?;
+      }
     }
-  }
-
-  // Copy dist/assets to .bundle/assets
-  let dist_assets = dist_dir.join("assets");
-  if dist_assets.exists() {
-    for entry in std::fs::read_dir(&dist_assets)? {
-      let entry = entry?;
-      std::fs::copy(entry.path(), bundle_assets.join(entry.file_name()))?;
-    }
-  }
-
-  // Copy and inject index.html
-  let index_html_path = dist_dir.join("index.html");
-  if index_html_path.exists() {
-    let mut index_html = std::fs::read_to_string(&index_html_path)?;
-    let ast_json = serde_json::to_string(&ast)?;
-    let metadata_str = serde_json::to_string(&metadata_json)?;
-    let injection = format!("window.__SIMIAN_PAPER_DATA__ = {};\nwindow.__SIMIAN_PAPER_METADATA__ = {};", ast_json, metadata_str);
-    index_html = index_html.replace("// __SIMIAN_INJECT__", &injection);
-    std::fs::write(bundle_dir.join("index.html"), index_html)?;
   }
 
   tracing::info!("Bundle is ready at: {:?}", bundle_dir);
 
-  if dry {
-    tracing::info!("Dry run complete! Opening bundled paper preview...");
-    let _ = open::that(bundle_dir.join("index.html"));
+  let wants_preview = dry
+    || dialoguer::Confirm::with_theme(&theme)
+      .with_prompt("Do you want to preview the paper locally before submitting?")
+      .default(true)
+      .interact()?;
+
+  if wants_preview {
+    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 0));
+    let bundle_dir_clone = bundle_dir.clone();
+
+    let router =
+      axum::Router::new().fallback_service(tower_http::services::ServeDir::new(bundle_dir_clone));
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let actual_addr = listener.local_addr()?;
+    let url = format!("http://{}", actual_addr);
+
+    tracing::info!("Starting preview server at {}", url);
+    let _ = open::that(&url);
+
+    let server_handle = tokio::spawn(async move {
+      axum::serve(listener, router).await.unwrap();
+    });
+
+    if dry {
+      tracing::info!("Dry run complete. The preview server is running.");
+      tracing::info!("Press Ctrl+C to exit.");
+      std::future::pending::<()>().await;
+    } else {
+      let proceed = dialoguer::Confirm::with_theme(&theme)
+        .with_prompt("Does the preview look good? Proceed with submission?")
+        .default(true)
+        .interact()?;
+
+      if !proceed {
+        anyhow::bail!("Submission aborted by user.");
+      }
+
+      server_handle.abort();
+    }
+  } else if dry {
     return Ok(());
   }
 
@@ -645,7 +699,10 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   let branch_name = format!("publish/{}", slug);
   tracing::info!("Updating branch {}...", branch_name);
 
-  let ref_url = format!("https://api.github.com/repos/{}/simian-papers/git/refs/heads/{}", username, branch_name);
+  let ref_url = format!(
+    "https://api.github.com/repos/{}/simian-papers/git/refs/heads/{}",
+    username, branch_name
+  );
   let ref_check = auth_client.get(&ref_url).send().await?;
 
   if ref_check.status().is_success() {
@@ -662,7 +719,10 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     }
   } else {
     let branch_res = auth_client
-      .post(format!("https://api.github.com/repos/{}/simian-papers/git/refs", username))
+      .post(format!(
+        "https://api.github.com/repos/{}/simian-papers/git/refs",
+        username
+      ))
       .json(&serde_json::json!({
         "ref": format!("refs/heads/{}", branch_name),
         "sha": commit_sha
@@ -705,7 +765,11 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   }
 
   if id != slug {
-    tracing::info!("Note: You can open this paper locally using either `{}` or `{}`.", id, slug);
+    tracing::info!(
+      "Note: You can open this paper locally using either `{}` or `{}`.",
+      id,
+      slug
+    );
   }
 
   Ok(())
