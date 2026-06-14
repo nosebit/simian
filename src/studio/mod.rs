@@ -146,7 +146,7 @@ fn resolve_studio_path(path: Option<String>) -> anyhow::Result<PathBuf> {
 
   let resolved = match path {
     None => {
-      let random_name = format!("paper-{}", rand::random::<u16>());
+      let random_name = format!("paper-{:06x}", rand::random::<u32>() & 0xFFFFFF);
       base_dir.join(random_name).join("source.smn")
     }
     Some(p) => {

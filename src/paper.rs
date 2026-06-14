@@ -193,7 +193,87 @@ pub async fn submit(id: String) -> Result<()> {
   tracing::info!("Parsing source.smn and collecting active plots...");
   let source_content = std::fs::read_to_string(&source_file)?;
   let ast: serde_json::Value = serde_json::from_str(&source_content)?;
-  let mut markdown = format!("# Paper: {}\n\n", id);
+  
+  let mut title_text = String::new();
+  if let Some(blocks) = ast.as_array() {
+    for block in blocks {
+      if let Some(block_type) = block.get("type").and_then(|v| v.as_str()) {
+        if block_type == "title" {
+          if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+            for child in children {
+              if let Some(t) = child.get("text").and_then(|v| v.as_str()) {
+                title_text.push_str(t);
+              }
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+  let title_text = title_text.trim().to_string();
+
+  let metadata_path = paper_dir.join("metadata.json");
+  let mut slug = String::new();
+
+  if metadata_path.exists() {
+    if let Ok(content) = std::fs::read_to_string(&metadata_path) {
+      if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+        if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
+          slug = s.to_string();
+        }
+      }
+    }
+  }
+
+  if slug.is_empty() {
+    let suffix = if id.starts_with("paper-") && id.len() > 6 {
+      &id[6..]
+    } else {
+      &id
+    };
+
+    let base_slug = slug::slugify(&title_text);
+    let suggested_slug = if base_slug.is_empty() {
+      format!("paper-{}", suffix)
+    } else {
+      format!("{}-{}", base_slug, suffix)
+    };
+
+    let theme = dialoguer::theme::ColorfulTheme::default();
+    let confirmation = dialoguer::Confirm::with_theme(&theme)
+      .with_prompt(format!("We extracted the title '{}'. Do you want to publish this paper as `{}`?", title_text, suggested_slug))
+      .default(true)
+      .interact()?;
+
+    if confirmation {
+      slug = suggested_slug;
+    } else {
+      slug = dialoguer::Input::with_theme(&theme)
+        .with_prompt("Please enter a custom slug for this paper")
+        .interact_text()?;
+    }
+
+    let metadata_json = serde_json::json!({
+      "slug": slug
+    });
+    std::fs::write(&metadata_path, serde_json::to_string_pretty(&metadata_json)?)?;
+  }
+
+  // Create symlink if needed
+  if id != slug {
+    let home = dirs::home_dir().context("Could not find HOME directory")?;
+    let simian_papers = home.join(".simian").join("papers");
+    let link_path = simian_papers.join(&slug);
+    if !link_path.exists() {
+      #[cfg(unix)]
+      let _ = std::os::unix::fs::symlink(&paper_dir, &link_path);
+      #[cfg(windows)]
+      let _ = std::os::windows::fs::symlink_dir(&paper_dir, &link_path);
+    }
+  }
+
+  let mut markdown = format!("# Paper: {}\n\n", title_text);
 
   if let Some(blocks) = ast.as_array() {
     for block in blocks {
@@ -437,7 +517,7 @@ pub async fn submit(id: String) -> Result<()> {
       } else {
         let content = std::fs::read(&path)?;
         let sha = upload_blob(&auth_client, username, &content).await?;
-        let tree_path = format!("papers/{}/{}", id, entry_rel);
+        let tree_path = format!("papers/{}/{}", slug, entry_rel);
 
         tree_nodes.push(serde_json::json!({
           "path": tree_path,
@@ -477,7 +557,7 @@ pub async fn submit(id: String) -> Result<()> {
       username
     ))
     .json(&serde_json::json!({
-      "message": format!("Publish paper: {}", id),
+      "message": format!("Publish paper: {}", title_text),
       "tree": tree_sha,
       "parents": [base_sha]
     }))
@@ -490,22 +570,37 @@ pub async fn submit(id: String) -> Result<()> {
     .and_then(|s| s.as_str())
     .context("Failed to create commit")?;
 
-  // 7. Create Branch
-  let branch_name = format!("submit-{}-{}", id, rand::random::<u32>());
-  tracing::info!("Creating branch {}...", branch_name);
-  let branch_res = auth_client
-    .post(format!(
-      "https://api.github.com/repos/{}/simian-papers/git/refs",
-      username
-    ))
-    .json(&serde_json::json!({
-      "ref": format!("refs/heads/{}", branch_name),
-      "sha": commit_sha
-    }))
-    .send()
-    .await?;
-  if !branch_res.status().is_success() {
-    anyhow::bail!("Failed to create branch: {:?}", branch_res.text().await?);
+  // 7. Update or Create Branch
+  let branch_name = format!("publish/{}", slug);
+  tracing::info!("Updating branch {}...", branch_name);
+
+  let ref_url = format!("https://api.github.com/repos/{}/simian-papers/git/refs/heads/{}", username, branch_name);
+  let ref_check = auth_client.get(&ref_url).send().await?;
+
+  if ref_check.status().is_success() {
+    let patch_res = auth_client
+      .patch(&ref_url)
+      .json(&serde_json::json!({
+        "sha": commit_sha,
+        "force": true
+      }))
+      .send()
+      .await?;
+    if !patch_res.status().is_success() {
+      anyhow::bail!("Failed to update branch: {:?}", patch_res.text().await?);
+    }
+  } else {
+    let branch_res = auth_client
+      .post(format!("https://api.github.com/repos/{}/simian-papers/git/refs", username))
+      .json(&serde_json::json!({
+        "ref": format!("refs/heads/{}", branch_name),
+        "sha": commit_sha
+      }))
+      .send()
+      .await?;
+    if !branch_res.status().is_success() {
+      anyhow::bail!("Failed to create branch: {:?}", branch_res.text().await?);
+    }
   }
 
   // 8. Create Pull Request
@@ -513,10 +608,10 @@ pub async fn submit(id: String) -> Result<()> {
   let pr_res = auth_client
     .post("https://api.github.com/repos/nosebit/simian-papers/pulls")
     .json(&serde_json::json!({
-      "title": format!("Publish Paper: {}", id),
+      "title": format!("Publish Paper: {}", title_text),
       "head": format!("{}:{}", username, branch_name),
       "base": "main",
-      "body": format!("Automatic submission of paper `{}` via Simian CLI.", id)
+      "body": format!("Automatic submission of paper `{}` via Simian CLI.", slug)
     }))
     .send()
     .await?;
@@ -527,8 +622,19 @@ pub async fn submit(id: String) -> Result<()> {
       tracing::info!("Successfully opened Pull Request: {}", url);
       let _ = open::that(url);
     }
+  } else if pr_res.status() == reqwest::StatusCode::UNPROCESSABLE_ENTITY {
+    let text = pr_res.text().await?;
+    if text.contains("A pull request already exists") {
+      tracing::info!("✅ Successfully updated your existing Pull Request!");
+    } else {
+      anyhow::bail!("Failed to open PR: {:?}", text);
+    }
   } else {
     anyhow::bail!("Failed to open PR: {:?}", pr_res.text().await?);
+  }
+
+  if id != slug {
+    tracing::info!("Note: You can open this paper locally using either `{}` or `{}`.", id, slug);
   }
 
   Ok(())
