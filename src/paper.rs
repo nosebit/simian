@@ -164,7 +164,7 @@ fn get_paper_dir(id: &str) -> Result<PathBuf> {
   );
 }
 
-pub async fn submit(id: String) -> Result<()> {
+pub async fn submit(id: String, dry: bool) -> Result<()> {
   let paper_dir = get_paper_dir(&id)?;
   let source_file = paper_dir.join("source.smn");
   if !source_file.exists() {
@@ -194,17 +194,30 @@ pub async fn submit(id: String) -> Result<()> {
   let source_content = std::fs::read_to_string(&source_file)?;
   let ast: serde_json::Value = serde_json::from_str(&source_content)?;
   
+  fn extract_markdown_text(children: &[serde_json::Value]) -> String {
+    let mut text = String::new();
+    for child in children {
+      let child_type = child.get("type").and_then(|v| v.as_str()).unwrap_or("");
+      if child_type == "latex-inline" {
+        if let Some(subchildren) = child.get("children").and_then(|v| v.as_array()) {
+          text.push('$');
+          text.push_str(&extract_markdown_text(subchildren));
+          text.push('$');
+        }
+      } else if let Some(t) = child.get("text").and_then(|v| v.as_str()) {
+        text.push_str(t);
+      }
+    }
+    text
+  }
+
   let mut title_text = String::new();
   if let Some(blocks) = ast.as_array() {
     for block in blocks {
       if let Some(block_type) = block.get("type").and_then(|v| v.as_str()) {
         if block_type == "title" {
           if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
-            for child in children {
-              if let Some(t) = child.get("text").and_then(|v| v.as_str()) {
-                title_text.push_str(t);
-              }
-            }
+            title_text = extract_markdown_text(children);
           }
           break;
         }
@@ -215,16 +228,20 @@ pub async fn submit(id: String) -> Result<()> {
 
   let metadata_path = paper_dir.join("metadata.json");
   let mut slug = String::new();
+  let mut metadata_json = serde_json::json!({});
 
   if metadata_path.exists() {
     if let Ok(content) = std::fs::read_to_string(&metadata_path) {
       if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+        metadata_json = json.clone();
         if let Some(s) = json.get("slug").and_then(|v| v.as_str()) {
           slug = s.to_string();
         }
       }
     }
   }
+
+  let theme = dialoguer::theme::ColorfulTheme::default();
 
   if slug.is_empty() {
     let suffix = if id.starts_with("paper-") && id.len() > 6 {
@@ -240,7 +257,6 @@ pub async fn submit(id: String) -> Result<()> {
       format!("{}-{}", base_slug, suffix)
     };
 
-    let theme = dialoguer::theme::ColorfulTheme::default();
     let confirmation = dialoguer::Confirm::with_theme(&theme)
       .with_prompt(format!("We extracted the title '{}'. Do you want to publish this paper as `{}`?", title_text, suggested_slug))
       .default(true)
@@ -254,11 +270,58 @@ pub async fn submit(id: String) -> Result<()> {
         .interact_text()?;
     }
 
-    let metadata_json = serde_json::json!({
-      "slug": slug
-    });
-    std::fs::write(&metadata_path, serde_json::to_string_pretty(&metadata_json)?)?;
+    metadata_json["slug"] = serde_json::json!(slug);
   }
+
+  if metadata_json.get("authors").is_none() {
+    tracing::info!("Fetching your GitHub profile...");
+    let auth_client = reqwest::Client::builder()
+      .user_agent("Simian-CLI")
+      .default_headers({
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+          "Authorization",
+          format!("Bearer {}", token).parse().unwrap(),
+        );
+        headers.insert("Accept", "application/vnd.github.v3+json".parse().unwrap());
+        headers
+      })
+      .build()?;
+      
+    let user_res: serde_json::Value = auth_client
+      .get("https://api.github.com/user")
+      .send()
+      .await?
+      .json()
+      .await?;
+      
+    let primary_id = user_res.get("id").and_then(|v| v.as_u64()).context("Failed to get GitHub user ID. Try checking your internet connection or removing ~/.simian/oauth/github.json.")?;
+    let mut authors = vec![primary_id];
+
+    let co_authors: String = dialoguer::Input::with_theme(&theme)
+      .with_prompt("Enter any co-author GitHub handles (comma-separated), or leave blank")
+      .allow_empty(true)
+      .interact_text()?;
+
+    if !co_authors.trim().is_empty() {
+      for handle in co_authors.split(',') {
+        let handle = handle.trim();
+        if !handle.is_empty() {
+          let co_res: serde_json::Value = client.get(format!("https://api.github.com/users/{}", handle))
+            .send().await?.json().await?;
+          if let Some(uid) = co_res.get("id").and_then(|v| v.as_u64()) {
+            authors.push(uid);
+          } else {
+            tracing::warn!("Could not find GitHub user '{}'", handle);
+          }
+        }
+      }
+    }
+
+    metadata_json["authors"] = serde_json::json!(authors);
+  }
+
+  std::fs::write(&metadata_path, serde_json::to_string_pretty(&metadata_json)?)?;
 
   // Create symlink if needed
   if id != slug {
@@ -280,16 +343,20 @@ pub async fn submit(id: String) -> Result<()> {
       let block_type = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
       if block_type == "paragraph" || block_type == "text" {
-        let mut text = String::new();
-        if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
-          for child in children {
-            if let Some(t) = child.get("text").and_then(|v| v.as_str()) {
-              text.push_str(t);
-            }
-          }
-        }
+        let text = if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+          extract_markdown_text(children)
+        } else {
+          String::new()
+        };
         markdown.push_str(&text);
         markdown.push_str("\n\n");
+      } else if block_type == "latex-block" {
+        let code = if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+          extract_markdown_text(children)
+        } else {
+          String::new()
+        };
+        markdown.push_str(&format!("$$\n{}\n$$\n\n", code));
       } else if block_type == "code-block" {
         let mut code = String::new();
         if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
@@ -367,14 +434,11 @@ pub async fn submit(id: String) -> Result<()> {
         }
         markdown.push('\n');
       } else if block_type == "heading" || block_type == "title" {
-        let mut text = String::new();
-        if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
-          for child in children {
-            if let Some(t) = child.get("text").and_then(|v| v.as_str()) {
-              text.push_str(t);
-            }
-          }
-        }
+        let text = if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
+          extract_markdown_text(children)
+        } else {
+          String::new()
+        };
         markdown.push_str(&format!("## {}\n\n", text));
       }
     }
@@ -414,12 +478,19 @@ pub async fn submit(id: String) -> Result<()> {
   if index_html_path.exists() {
     let mut index_html = std::fs::read_to_string(&index_html_path)?;
     let ast_json = serde_json::to_string(&ast)?;
-    let injection = format!("window.__SIMIAN_PAPER_DATA__ = {};", ast_json);
+    let metadata_str = serde_json::to_string(&metadata_json)?;
+    let injection = format!("window.__SIMIAN_PAPER_DATA__ = {};\nwindow.__SIMIAN_PAPER_METADATA__ = {};", ast_json, metadata_str);
     index_html = index_html.replace("// __SIMIAN_INJECT__", &injection);
     std::fs::write(bundle_dir.join("index.html"), index_html)?;
   }
 
   tracing::info!("Bundle is ready at: {:?}", bundle_dir);
+
+  if dry {
+    tracing::info!("Dry run complete! Opening bundled paper preview...");
+    let _ = open::that(bundle_dir.join("index.html"));
+    return Ok(());
+  }
 
   tracing::info!("Authenticating with GitHub API...");
   let auth_client = reqwest::Client::builder()

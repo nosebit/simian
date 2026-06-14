@@ -57,6 +57,9 @@ pub enum PaperCommands {
     /// The ID of the paper to submit
     #[arg(index = 1)]
     id: String,
+    /// Run the submission process without pushing to GitHub
+    #[arg(short, long, default_value_t = false)]
+    dry: bool,
   },
   /// Fork a published paper from the community
   Fork {

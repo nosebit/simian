@@ -41,11 +41,15 @@ export function EditorPage({ id }: { id: string }) {
   const [value, setValue] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<'read' | 'write'>('write')
+  const [authors, setAuthors] = useState<number[]>([])
 
   useEffect(() => {
     if (window.__SIMIAN_PAPER_DATA__) {
       setValue(window.__SIMIAN_PAPER_DATA__)
       setMode('read')
+      if (window.__SIMIAN_PAPER_METADATA__?.authors) {
+        setAuthors(window.__SIMIAN_PAPER_METADATA__.authors)
+      }
       setLoading(false)
       return
     }
@@ -107,6 +111,22 @@ export function EditorPage({ id }: { id: string }) {
         </div>
       ) : (
         <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8">
+          {mode === 'read' && authors.length > 0 && (
+            <div className="flex -space-x-3 mb-6 relative z-10 pl-2">
+              {authors.map((authorId) => (
+                <div
+                  key={authorId}
+                  className="w-10 h-10 rounded-full border-2 border-white dark:border-[#0d1117] bg-white dark:bg-[#0d1117] overflow-hidden shadow-sm hover:z-20 transition-transform hover:scale-110"
+                >
+                  <img
+                    src={`https://avatars.githubusercontent.com/u/${authorId}?v=4`}
+                    alt="Author avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
           <Editor
             addons={addons}
             initialValue={value}
