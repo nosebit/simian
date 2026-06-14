@@ -1,6 +1,8 @@
 import { codeBlock, CodeBlockAddon } from './code-block'
 import { column, ColumnAddon } from './column'
 import { heading, HeadingAddon } from './heading'
+import { latexBlock, LatexBlockAddon } from './latex-block'
+import { latexInline, LatexInlineAddon } from './latex-inline'
 import { paragraph, ParagraphAddon } from './paragraph'
 import { root, RootAddon } from './root'
 import { subtitle, SubTitleAddon } from './subtitle'
@@ -12,6 +14,8 @@ export {
   codeBlock,
   column,
   heading,
+  latexBlock,
+  latexInline,
   paragraph,
   root,
   subtitle,
@@ -27,6 +31,8 @@ export type AddonRegistry = {
   codeBlock: CodeBlockAddon
   column: ColumnAddon
   heading: HeadingAddon
+  latexBlock: LatexBlockAddon
+  latexInline: LatexInlineAddon
   paragraph: ParagraphAddon
   root: RootAddon
   subtitle: SubTitleAddon

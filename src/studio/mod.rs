@@ -265,8 +265,10 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
       .output();
 
     let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui");
-    let child = std::process::Command::new("node_modules/.bin/vite")
-      .current_dir(ui_dir)
+    let vite_bin = ui_dir.join("node_modules/.bin/vite");
+    
+    let child = std::process::Command::new(vite_bin)
+      .current_dir(&ui_dir)
       .stdout(std::process::Stdio::null())
       .stderr(std::process::Stdio::null())
       .spawn()?;

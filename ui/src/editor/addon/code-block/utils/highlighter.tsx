@@ -1,3 +1,4 @@
+import latexLang from '@shikijs/langs/latex'
 import rustLang from '@shikijs/langs/rust'
 import ghDarkDimmed from '@shikijs/themes/github-dark-dimmed'
 import ghDarkHighContrast from '@shikijs/themes/github-dark-high-contrast'
@@ -6,7 +7,7 @@ import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 
 const highlighter = createHighlighterCoreSync({
   themes: [ghDarkDimmed, ghDarkHighContrast],
-  langs: [rustLang],
+  langs: [rustLang, latexLang],
   engine: createJavaScriptRegexEngine(),
 })
 

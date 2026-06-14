@@ -12,6 +12,8 @@ import { root } from '@/editor/addon/root'
 import { subtitle } from '@/editor/addon/subtitle'
 import { heading } from '@/editor/addon/heading'
 import { column } from '@/editor/addon/column'
+import { latexBlock } from '@/editor/addon/latex-block'
+import { latexInline } from '@/editor/addon/latex-inline'
 import './App.css'
 
 // Default fallback if loading fails
@@ -101,6 +103,8 @@ export default function App() {
     paragraph(),
     heading(),
     column(),
+    latexBlock(),
+    latexInline(),
     codeBlock(),
   ]
 
