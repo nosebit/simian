@@ -1,0 +1,49 @@
+#!/bin/sh
+
+echo "================================================="
+echo "Running Simian pre-push checks..."
+echo "================================================="
+
+echo "1. Checking formatting (cargo fmt --check)"
+if ! cargo fmt --check; then
+  echo "\n❌ Error: Formatting check failed! Run 'cargo fmt' to automatically fix your files, then try pushing again."
+  exit 1
+fi
+
+echo "\n2. Running clippy (cargo clippy)"
+if ! cargo clippy -- -D warnings; then
+  echo "\n❌ Error: Clippy checks failed! Please fix the warnings above."
+  exit 1
+fi
+
+echo "\n3. Running tests (cargo test)"
+if ! cargo test; then
+  echo "\n❌ Error: Tests failed! Please fix the failing tests."
+  exit 1
+fi
+
+echo "\n4. Running UI Linter"
+if ! (cd ui && npm run lint); then
+  echo "\n❌ Error: UI Linter failed! Please fix the linting errors."
+  exit 1
+fi
+echo "\n5. Running UI Typecheck"
+if ! (cd ui && npm run typecheck); then
+  echo "\n❌ Error: UI Typecheck failed! Please fix the type errors."
+  exit 1
+fi
+
+echo "\n6. Checking UI Formatting"
+if ! (cd ui && npx prettier --check "src/**/*.{ts,tsx,css,json}"); then
+  echo "\n❌ Error: UI Formatting check failed! Run 'npm run format' inside the ui folder to automatically fix your files."
+  exit 1
+fi
+
+echo "\n7. Running UI Tests"
+if ! (cd ui && npm run test); then
+  echo "\n❌ Error: UI Tests failed! Please fix the failing tests."
+  exit 1
+fi
+
+echo "\n✅ All checks passed! Pushing to remote..."
+exit 0

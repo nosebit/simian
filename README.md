@@ -262,3 +262,17 @@ If you are modifying the code and want to run Simian without explicitly building
 ```bash
 RUST_LOG=debug cargo run -- paper open --dev
 ```
+
+### Git Hooks
+
+We use a pre-push git hook to ensure code quality before pushing. The script is located at `git/hooks/pre-push`. To set it up in your local clone, simply configure your git hooks path:
+
+```bash
+git config core.hooksPath git/hooks
+```
+
+Or manually copy it to your `.git/hooks` directory:
+
+```bash
+cp git/hooks/pre-push .git/hooks/pre-push
+```
