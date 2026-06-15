@@ -332,6 +332,19 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
       .output();
 
     let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui");
+
+    if !ui_dir.join("node_modules").exists() {
+      tracing::info!("UI dependencies not found. Installing via npm install...");
+      let status = std::process::Command::new("npm")
+        .arg("install")
+        .current_dir(&ui_dir)
+        .status()?;
+
+      if !status.success() {
+        tracing::error!("Failed to install UI dependencies.");
+      }
+    }
+
     let vite_bin = ui_dir.join("node_modules/.bin/vite");
 
     let child = std::process::Command::new(vite_bin)

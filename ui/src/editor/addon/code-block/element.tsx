@@ -180,6 +180,7 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
     useEffect(() => {
       const handler = (event: MessageEvent) => {
         if (event.data?.type === 'SIMIAN_PLOT_STATE') {
+          if (mode === 'read') return
           // Find which iframe sent this
           const idx = iframeRefs.current.findIndex(
             (ref) => ref && ref.contentWindow === event.source,
@@ -204,7 +205,7 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
       }
       window.addEventListener('message', handler)
       return () => window.removeEventListener('message', handler)
-    }, [element, editor])
+    }, [element, editor, mode])
 
     const [fgColor, bgColor] = useMemo(() => {
       if (themeMode === 'dark') {

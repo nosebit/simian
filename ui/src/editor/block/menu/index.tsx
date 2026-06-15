@@ -3,9 +3,9 @@ import clsx from 'clsx'
 import { Node, Transforms } from 'slate'
 import { ReactEditor, useSlateStatic } from 'slate-react'
 
-import WidthFull from '/width-full.svg'
-import WidthStandard from '/width-standard.svg'
-import WidthWide from '/width-wide.svg'
+import WidthFull from '../../../assets/width-full.svg'
+import WidthStandard from '../../../assets/width-standard.svg'
+import WidthWide from '../../../assets/width-wide.svg'
 import { Button } from '@/components/ui/button'
 
 import { useMode } from '../../context'

@@ -405,62 +405,133 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
           .unwrap_or("rust");
         markdown.push_str(&format!("```{}\n{}\n```\n", lang, code));
 
-        // Find plots in output
-        if let Some(output) = block.get("output")
-          && let Some(urls) = output.get("urls").and_then(|v| v.as_array())
-        {
-          for url_val in urls {
-            if let Some(url) = url_val.as_str() {
-              if url.starts_with("data:text/html;base64,") {
-                let b64 = url.trim_start_matches("data:text/html;base64,");
-                use base64::{Engine as _, engine::general_purpose};
-                if let Ok(decoded) = general_purpose::STANDARD.decode(b64) {
-                  let rand_id = rand::random::<u32>();
-                  let html_filename = format!("plot-{}.html", rand_id);
-                  let png_filename = format!("plot-{}.png", rand_id);
-                  let html_dest = bundle_assets.join(&html_filename);
-                  let png_dest = bundle_assets.join(&png_filename);
-                  std::fs::write(&html_dest, decoded)?;
+        if let Some(output) = block.get("output") {
+          if let Some(stdout) = output.get("stdout").and_then(|v| v.as_str())
+            && !stdout.is_empty()
+          {
+            markdown.push_str(&format!("\n```text\n{}\n```\n", stdout.trim_end()));
+          }
+          if let Some(stderr) = output.get("stderr").and_then(|v| v.as_str())
+            && !stderr.is_empty()
+          {
+            markdown.push_str(&format!("\n```text\n{}\n```\n", stderr.trim_end()));
+          }
 
-                  // Take screenshot
-                  let ui_dir = std::env::current_dir()?.join("ui");
-                  let script_path = ui_dir.join("scripts").join("screenshot.js");
-                  if script_path.exists() {
-                    tracing::info!("Taking screenshot of {}", html_filename);
-                    std::process::Command::new("node")
-                      .arg(&script_path)
-                      .arg(&html_dest)
-                      .arg(&png_dest)
-                      .current_dir(&ui_dir)
-                      .status()?;
+          if let Some(items) = output.get("items").and_then(|v| v.as_array()) {
+            for item in items {
+              if let Some(url) = item.get("url").and_then(|v| v.as_str()) {
+                let state_hash = if let Some(state) = item.get("state") {
+                  let json = serde_json::to_string(state).unwrap_or_default();
+                  use base64::{Engine as _, engine::general_purpose};
+                  format!("#{}", general_purpose::STANDARD.encode(json))
+                } else {
+                  String::new()
+                };
 
-                    markdown.push_str(&format!("\n![Plot](assets/{})\n", png_filename));
-                  } else {
-                    markdown.push_str(&format!("\n*(Interactive Plot: {})*\n", html_filename));
-                  }
-                }
-              } else if url.starts_with("data:image/") {
-                // Could save image to disk and link
-                let parts: Vec<&str> = url.splitn(2, ',').collect();
-                if parts.len() == 2 {
-                  let b64 = parts[1];
+                if url.starts_with("data:text/html;base64,") {
+                  let b64 = url.trim_start_matches("data:text/html;base64,");
                   use base64::{Engine as _, engine::general_purpose};
                   if let Ok(decoded) = general_purpose::STANDARD.decode(b64) {
                     let rand_id = rand::random::<u32>();
-                    let ext = if url.starts_with("data:image/png") {
-                      "png"
-                    } else {
-                      "jpg"
-                    };
-                    let filename = format!("image-{}.{}", rand_id, ext);
-                    let dest = bundle_assets.join(&filename);
-                    std::fs::write(&dest, decoded)?;
-                    markdown.push_str(&format!("\n![Image](assets/{})\n", filename));
+                    let html_filename = format!("plot-{}.html", rand_id);
+                    let png_filename = format!("plot-{}.png", rand_id);
+                    let html_dest = bundle_assets.join(&html_filename);
+                    let png_dest = bundle_assets.join(&png_filename);
+                    std::fs::write(&html_dest, decoded)?;
+
+                    let mut screenshot_taken = false;
+                    let mut should_capture = false;
+                    let mut browser_opts = headless_chrome::LaunchOptions::default_builder()
+                      .build()
+                      .unwrap();
+                    browser_opts.headless = false; // Prevent old --headless
+                    browser_opts.enable_gpu = true; // Prevent --disable-gpu
+                    // Use new headless mode which supports WebGL properly
+                    browser_opts
+                      .args
+                      .push(std::ffi::OsStr::new("--headless=new"));
+
+                    match headless_chrome::browser::default_executable() {
+                      Ok(path) => {
+                        browser_opts.path = Some(path);
+                        should_capture = true;
+                      }
+                      Err(_) => {
+                        let download = dialoguer::Confirm::new()
+                          .with_prompt("Chrome/Chromium is required to capture plots but wasn't found. Would you like to automatically download a lightweight headless Chromium?")
+                          .default(true)
+                          .interact().unwrap_or(false);
+                        if download {
+                          tracing::info!(
+                            "Downloading headless Chromium (this may take a minute)..."
+                          );
+                          browser_opts.path = None; // Browser::new will automatically fetch it
+                          should_capture = true;
+                        }
+                      }
+                    }
+
+                    if should_capture
+                      && let Ok(browser) = headless_chrome::Browser::new(browser_opts)
+                      && let Ok(tab) = browser.new_tab()
+                    {
+                      let _ = tab.set_bounds(headless_chrome::types::Bounds::Normal {
+                        left: Some(0),
+                        top: Some(0),
+                        width: Some(800.0),
+                        height: Some(600.0),
+                      });
+                      let mut file_url = format!(
+                        "file://{}",
+                        html_dest
+                          .canonicalize()
+                          .unwrap_or(html_dest.clone())
+                          .display()
+                      );
+                      file_url.push_str(&state_hash);
+
+                      tracing::info!("Taking screenshot of {}", html_filename);
+                      if tab.navigate_to(&file_url).is_ok() {
+                        let _ = tab.wait_until_navigated();
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        if let Ok(png_data) = tab.capture_screenshot(
+                          headless_chrome::protocol::cdp::Page::CaptureScreenshotFormatOption::Png,
+                          None,
+                          None,
+                          true,
+                        ) && std::fs::write(&png_dest, png_data).is_ok()
+                        {
+                          markdown.push_str(&format!("\n![Plot](./assets/{})\n", png_filename));
+                          screenshot_taken = true;
+                        }
+                      }
+                    }
+
+                    if !screenshot_taken {
+                      markdown.push_str(&format!("\n*(Interactive Plot: {})*\n", html_filename));
+                    }
                   }
+                } else if url.starts_with("data:image/") {
+                  let parts: Vec<&str> = url.splitn(2, ',').collect();
+                  if parts.len() == 2 {
+                    let b64 = parts[1];
+                    use base64::{Engine as _, engine::general_purpose};
+                    if let Ok(decoded) = general_purpose::STANDARD.decode(b64) {
+                      let rand_id = rand::random::<u32>();
+                      let ext = if url.starts_with("data:image/png") {
+                        "png"
+                      } else {
+                        "jpg"
+                      };
+                      let filename = format!("image-{}.{}", rand_id, ext);
+                      let dest = bundle_assets.join(&filename);
+                      std::fs::write(&dest, decoded)?;
+                      markdown.push_str(&format!("\n![Image](./assets/{})\n", filename));
+                    }
+                  }
+                } else {
+                  markdown.push_str(&format!("\n![Media]({})\n", url));
                 }
-              } else {
-                // Normal remote URL
-                markdown.push_str(&format!("\n![Media]({})\n", url));
               }
             }
           }
@@ -478,7 +549,8 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   }
 
   std::fs::write(bundle_dir.join("paper.md"), markdown)?;
-  std::fs::copy(&source_file, bundle_dir.join("source.smn"))?;
+  std::fs::create_dir_all(bundle_dir.join("assets"))?;
+  std::fs::copy(&source_file, bundle_dir.join("assets/source.smn"))?;
 
   tracing::info!("Extracting embedded React App...");
 

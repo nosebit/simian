@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useTheme } from 'next-themes'
 import { Plus, Loader2, FileText, Calendar, Moon, Sun } from 'lucide-react'
+import Logo from '../assets/logo_w_text.png'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -83,7 +84,7 @@ export function Dashboard() {
       <header className="fixed top-0 left-0 w-full z-50 flex items-center justify-between p-4 px-8 bg-white dark:bg-[#0d1117]">
         <div className="flex items-center gap-3">
           <img
-            src="/logo_w_text.png"
+            src={Logo}
             alt="Simian"
             className="h-8 object-contain dark:invert"
           />
