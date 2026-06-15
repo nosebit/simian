@@ -13,7 +13,7 @@ export const LatexInline: FC<ElementProps<'latex-inline'>> = ({
   children,
   element,
 }) => {
-  const { editor } = useEditor()
+  const { editor, mode } = useEditor()
   const expression = Node.string(element)
   const selected = useSelected()
   const focused = useFocused()
@@ -27,7 +27,7 @@ export const LatexInline: FC<ElementProps<'latex-inline'>> = ({
 
   const setMode = useCallback(
     (newMode: 'read' | 'write') => {
-      if (editor.mode === 'read') return
+      if (mode === 'read') return
 
       const path = ReactEditor.findPath(editor, element)
       Transforms.setNodes(editor, { mode: newMode }, { at: path })
@@ -41,7 +41,7 @@ export const LatexInline: FC<ElementProps<'latex-inline'>> = ({
         Transforms.collapse(editor, { edge: 'end' })
       }
     },
-    [editor, element],
+    [editor, element, mode],
   )
 
   // Watch for "Click Out" events
@@ -58,7 +58,7 @@ export const LatexInline: FC<ElementProps<'latex-inline'>> = ({
     }
   }, [selected, focused, element.mode, setMode])
 
-  if (element.mode === 'write' && editor.mode === 'read') {
+  if (element.mode === 'write' && mode === 'read') {
     return (
       <span
         {...attributes}

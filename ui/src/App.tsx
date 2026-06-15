@@ -12,23 +12,33 @@ declare global {
     __SIMIAN_PAPER_METADATA__?: {
       authors?: number[]
       slug?: string
+      publishedAt?: string
+      submittedAt?: string
     }
   }
 }
 
 export default function App() {
+  const isBundled = !!window.__SIMIAN_PAPER_DATA__
+
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <I18nProvider>
-          <Switch>
-            <Route path="/">
-              <Dashboard />
-            </Route>
-            <Route path="/:id">
-              {(params) => <EditorPage id={params.id} />}
-            </Route>
-          </Switch>
+          {isBundled ? (
+            <EditorPage
+              id={window.__SIMIAN_PAPER_METADATA__?.slug || 'paper'}
+            />
+          ) : (
+            <Switch>
+              <Route path="/">
+                <Dashboard />
+              </Route>
+              <Route path="/:id">
+                {(params) => <EditorPage id={params.id} />}
+              </Route>
+            </Switch>
+          )}
         </I18nProvider>
       </TooltipProvider>
     </ThemeProvider>

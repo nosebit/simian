@@ -347,6 +347,10 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     metadata_json["authors"] = serde_json::json!(authors);
   }
 
+  if metadata_json.get("submittedAt").is_none() {
+    metadata_json["submittedAt"] = serde_json::json!(chrono::Utc::now().to_rfc3339());
+  }
+
   std::fs::write(
     &metadata_path,
     serde_json::to_string_pretty(&metadata_json)?,
@@ -642,7 +646,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       } else {
         let content = std::fs::read(&path)?;
         let sha = upload_blob(&auth_client, username, &content).await?;
-        let tree_path = format!("papers/{}/{}", slug, entry_rel);
+        let tree_path = format!("published/{}/{}", slug, entry_rel);
 
         tree_nodes.push(serde_json::json!({
           "path": tree_path,

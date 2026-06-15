@@ -16,8 +16,8 @@ import { renderKaTeX } from './utils'
 import { Block } from '../../block'
 
 export const LatexBlockElement = contextualize<ElementProps<'latex-block'>>()(
-  ['editor'],
-  ({ attributes, children, editor, element }) => {
+  ['editor', 'mode'],
+  ({ attributes, children, editor, element, mode }) => {
     const num = useEquationNumber(element.id)
     const { resolvedTheme: themeMode } = useTheme()
     const text = Node.string(element)
@@ -37,6 +37,7 @@ export const LatexBlockElement = contextualize<ElementProps<'latex-block'>>()(
     }, [themeMode])
 
     const handleMouseDown = (e: React.MouseEvent) => {
+      if (mode === 'read') return
       // detail === 2 means this is the second click in a short duration (Double Click)
       if (e.detail === 2) {
         e.preventDefault() // Prevent Slate from handling the double-click selection
