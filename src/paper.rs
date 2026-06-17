@@ -786,7 +786,11 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       "title": format!("Publish Paper: {}", title_text),
       "head": branch_name,
       "base": "main",
-      "body": format!("Automatic submission of paper `{}` via Simian CLI.", slug)
+      "body": format!(
+        "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}/index.html)",
+        slug = slug,
+        branch_name = branch_name
+      )
     }))
     .send()
     .await?;
