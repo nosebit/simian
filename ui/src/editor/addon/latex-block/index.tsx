@@ -130,6 +130,25 @@ const decorate: LatexBlockAddon['decorate'] = (ctx, [node, nodePath]) => {
 }
 
 /**
+ * Handle pasted data into latex-blocks.
+ */
+const insertData: LatexBlockAddon['insertData'] = ({ editor }, data) => {
+  const text = data.getData('text/plain')
+  const entry = Editor.above(editor, {
+    match: (n) => Element.isElement(n) && n.type === 'latex-block',
+  })
+
+  if (text && entry) {
+    // When pasting into a latex-block, insert text exactly as-is
+    // instead of letting Slate's default behavior split the block.
+    Transforms.insertText(editor, text)
+    return { break: true }
+  }
+
+  return false
+}
+
+/**
  * Detect keyboard shortcut to insert a latex-block.
  */
 const insertText: LatexBlockAddon['insertText'] = (
@@ -319,6 +338,7 @@ export function latexBlock(): LatexBlockAddon {
     id: 'latex-block',
     render,
     decorate,
+    insertData,
     insertText,
     normalizeNode,
     onKeyDown,

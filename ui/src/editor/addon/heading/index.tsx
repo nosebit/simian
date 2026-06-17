@@ -100,9 +100,12 @@ const insertText: HeadingAddon['insertText'] = (
 
       // ────── HEADINGS ──────
       const headingMap: { [key: string]: number } = {
-        '#': 2, // h1 is the title of the page itself
-        '##': 3,
-        '###': 4,
+        '#': 1,
+        '##': 2,
+        '###': 3,
+        '####': 4,
+        '#####': 5,
+        '######': 6,
       }
       if (headingMap[beforeText]) {
         // Skip detection if we are inside some special elements.
@@ -138,8 +141,7 @@ const insertText: HeadingAddon['insertText'] = (
  */
 export function heading(params?: HeadingContextValue): HeadingAddon {
   return elementAddon({
-    emptyPlaceholder: (level, t) =>
-      `${t.title('@editor.heading')} ${level - 1}`,
+    emptyPlaceholder: (level, t) => `${t.title('@editor.heading')} ${level}`,
     ...params,
     id: 'heading',
     render,

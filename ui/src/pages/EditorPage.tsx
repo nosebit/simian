@@ -13,6 +13,7 @@ import { heading } from '@/editor/addon/heading'
 import { column } from '@/editor/addon/column'
 import { latexBlock } from '@/editor/addon/latex-block'
 import { latexInline } from '@/editor/addon/latex-inline'
+import { cn } from '@/lib/utils'
 
 let saveTimeout: ReturnType<typeof setTimeout>
 
@@ -97,11 +98,76 @@ function AuthorBadge({ authorId }: { authorId: number }) {
   )
 }
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+function ApproversFacepile({ approvers }: { approvers: number[] }) {
+  if (!approvers || approvers.length === 0) return null
+
+  return (
+    <div className="flex items-center">
+      {approvers.map((approverId, i) => (
+        <ApproverAvatar key={approverId} approverId={approverId} index={i} />
+      ))}
+    </div>
+  )
+}
+
+function ApproverAvatar({
+  approverId,
+  index,
+}: {
+  approverId: number
+  index: number
+}) {
+  const [handle, setHandle] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch(`https://api.github.com/user/${approverId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.login) setHandle(data.login)
+      })
+      .catch(() => {})
+  }, [approverId])
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a
+          href={`https://github.com/${handle || approverId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'w-7 h-7 rounded-full border-2 border-white dark:border-[#0d1117] overflow-hidden bg-muted transition-transform hover:z-10 hover:scale-110',
+            index > 0 && '-ml-2',
+          )}
+        >
+          <img
+            src={`https://avatars.githubusercontent.com/u/${approverId}?v=4`}
+            alt={`${handle || approverId} avatar`}
+            className="w-full h-full object-cover"
+          />
+        </a>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-xs font-mono">
+          {handle ? `@${handle}` : 'Loading...'}
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function EditorPage({ id }: { id: string }) {
   const [value, setValue] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<'read' | 'write'>('write')
   const [authors, setAuthors] = useState<number[]>([])
+  const [approvers, setApprovers] = useState<number[]>([])
   const [publishedAt, setPublishedAt] = useState<string | null>(null)
   const [submittedAt, setSubmittedAt] = useState<string | null>(null)
 
@@ -114,6 +180,9 @@ export function EditorPage({ id }: { id: string }) {
         setMode('read')
         if (metadata?.authors) {
           setAuthors(metadata.authors)
+        }
+        if (metadata?.approvers) {
+          setApprovers(metadata.approvers)
         }
         if (metadata?.publishedAt) {
           setPublishedAt(metadata.publishedAt)
@@ -189,13 +258,21 @@ export function EditorPage({ id }: { id: string }) {
       ) : (
         <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8">
           {mode === 'read' &&
-            (authors.length > 0 || publishedAt || submittedAt) && (
+            (authors.length > 0 ||
+              approvers.length > 0 ||
+              publishedAt ||
+              submittedAt) && (
               <div className="mb-8 pl-2">
-                {authors.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2 relative z-10">
+                {(authors.length > 0 || approvers.length > 0) && (
+                  <div className="flex flex-wrap gap-2 mb-2 relative z-10 items-center">
                     {authors.map((authorId) => (
                       <AuthorBadge key={authorId} authorId={authorId} />
                     ))}
+                    {approvers.length > 0 && (
+                      <div className="ml-2">
+                        <ApproversFacepile approvers={approvers} />
+                      </div>
+                    )}
                   </div>
                 )}
                 {(publishedAt || submittedAt) && (
