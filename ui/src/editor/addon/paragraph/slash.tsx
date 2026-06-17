@@ -1,4 +1,4 @@
-import { Image } from 'lucide-react'
+import { Text } from 'lucide-react'
 import { nanoid } from 'nanoid'
 
 import { blockApply } from '@/ui/editor/utils'
@@ -10,9 +10,8 @@ export const paragraph: SlashAddonCommandFactory<'paragraph', 'text'> = ({
   ...ctx
 }) => ({
   id: 'paragraph',
-  icon: <Image />,
+  icon: <Text />,
   group: 'text', // TypeScript keeps this as "text" instead of string
-  shortcut: '![]()',
   title: t.title('@editor.@slash.paragraph'),
 
   run: () =>

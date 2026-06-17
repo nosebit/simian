@@ -9,6 +9,13 @@ import { ElementProps } from '@/ui/editor/types'
 const jetbrainsMono = { className: 'font-mono' }
 import { useTheme } from 'next-themes'
 import { Play, Loader2 } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 import { ghDarkDimmed, ghDarkHighContrast } from './utils/highlighter'
 
@@ -250,6 +257,73 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
                 : 'rgba(0,0,0,0.1)',
           }}
         >
+          {/* Header */}
+          <div
+            contentEditable={false}
+            className="flex items-center justify-between p-2 pb-0 select-none"
+          >
+            <Select
+              value={element.language || 'rust'}
+              onValueChange={(val) => {
+                if (mode === 'read') return
+                const path = ReactEditor.findPath(editor, element)
+                Transforms.setNodes(
+                  editor,
+                  { language: val } as Partial<Node>,
+                  { at: path },
+                )
+              }}
+            >
+              <SelectTrigger
+                disabled={mode === 'read'}
+                className="h-7 w-auto min-w-[90px] text-xs font-mono !bg-transparent transition-colors border !border-white/20 dark:!border-white/10 shadow-none text-muted-foreground focus:!ring-0 focus:!ring-offset-0 !outline-none"
+              >
+                <SelectValue placeholder="Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  'rust',
+                  'python',
+                  'javascript',
+                  'typescript',
+                  'json',
+                  'bash',
+                ].map((lang) => (
+                  <SelectItem
+                    key={lang}
+                    value={lang}
+                    className="text-xs font-mono"
+                  >
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+             {/* Execute Button */}
+             {(element.language === 'rust' || !element.language) && mode === 'write' && (
+                <button
+                  onClick={() => {
+                    const path = ReactEditor.findPath(editor, element)
+                    executeCodeBlock(editor, path)
+                  }}
+                  title="Execute"
+                  disabled={element.isEvaluating}
+                  className={clsx(
+                    'w-7 h-7 flex items-center justify-center text-white rounded transition-colors',
+                    element.isEvaluating
+                      ? 'bg-orange-500 cursor-wait'
+                      : 'bg-blue-500 hover:bg-blue-600 cursor-pointer',
+                  )}
+                >
+                  {element.isEvaluating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 ml-0.5" />
+                  )}
+                </button>
+             )}
+          </div>
           <pre
             className={clsx([
               'flex relative py-3 rounded-none not-prose leading-relaxed [font-variant-ligatures:normal] overflow-x-auto',
@@ -281,34 +355,7 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
               {children}
             </code>
           </pre>
-
-          {/* Evaluate Button */}
-          {mode === 'write' && (
-            <div className="absolute -bottom-4 -right-4 z-20">
-              <button
-                contentEditable={false}
-                onClick={() => {
-                  const path = ReactEditor.findPath(editor, element)
-                  executeCodeBlock(editor, path)
-                }}
-                disabled={element.isEvaluating}
-                className={clsx(
-                  'p-3 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-10',
-                  element.isEvaluating
-                    ? 'bg-orange-500 shadow-orange-500/40 cursor-wait'
-                    : 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/40 hover:scale-105 cursor-pointer',
-                )}
-              >
-                {element.isEvaluating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4 ml-[2px]" />
-                )}
-              </button>
-            </div>
-          )}
         </div>
-
         {/* Render Output if it exists */}
         {element.output && (
           <div

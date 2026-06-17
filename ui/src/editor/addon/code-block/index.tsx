@@ -33,7 +33,7 @@ const decorate: CodeBlockAddon['decorate'] = (ctx, [node, path]) => {
   }
 
   const text = Node.string(node)
-  const language = 'rust'
+  const language = (node as any).language || 'rust'
 
   const { tokens } = highlighter.codeToTokens(text, {
     lang: language,

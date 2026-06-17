@@ -13,6 +13,7 @@ import { heading } from '@/editor/addon/heading'
 import { column } from '@/editor/addon/column'
 import { latexBlock } from '@/editor/addon/latex-block'
 import { latexInline } from '@/editor/addon/latex-inline'
+import { slash } from '@/editor/addon/slash'
 import { cn } from '@/lib/utils'
 
 let saveTimeout: ReturnType<typeof setTimeout>
@@ -248,6 +249,7 @@ export function EditorPage({ id }: { id: string }) {
     latexBlock(),
     latexInline(),
     codeBlock(),
+    slash(),
   ]
 
   const isBundled = !!window.__SIMIAN_PAPER_DATA__
@@ -276,7 +278,7 @@ export function EditorPage({ id }: { id: string }) {
           workspace...
         </div>
       ) : (
-        <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8">
+        <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8 text-base">
           {mode === 'read' &&
             (authors.length > 0 ||
               approvers.length > 0 ||

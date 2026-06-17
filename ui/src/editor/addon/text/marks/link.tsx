@@ -27,7 +27,7 @@ export const LinkMark: TextMark<{ href: string }> = (props) => {
         : {})}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-blue-500 underline cursor-pointer hover:text-blue-600 dark:text-blue-300 dark:hover:text-blue-400"
+      className="text-blue-500 cursor-pointer hover:text-blue-600 dark:text-blue-300 dark:hover:text-blue-400"
       onClick={(e) => {
         if (!readOnly) {
           e.preventDefault()

@@ -4,15 +4,14 @@ import { nanoid } from 'nanoid'
 import { blockApply } from '@/ui/editor/utils'
 import { SlashAddonCommandFactory } from '../types'
 
-export const latexBlock: SlashAddonCommandFactory<'latex-block', 'nerd'> = ({
-  t,
-  ...ctx
-}) => ({
+export const latexBlock: SlashAddonCommandFactory<'latex-block', 'nerd'> = (
+  ctx,
+) => ({
   id: 'latex-block',
   icon: <SquareSigma />,
   group: 'nerd', // TypeScript keeps this as "text" instead of string
   shortcut: '$$$',
-  title: `${t.upperFirst('@editor.@slash.latex')} 1`,
+  title: 'LaTeX',
   run: () =>
     blockApply({
       ...ctx,

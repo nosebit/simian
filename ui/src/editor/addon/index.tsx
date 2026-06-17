@@ -9,6 +9,7 @@ import { subtitle, SubTitleAddon } from './subtitle'
 import { text, TextAddon } from './text'
 import { title, TitleAddon } from './title'
 import { val, ValAddon } from './val'
+import { slash, SlashAddon } from './slash'
 
 export {
   codeBlock,
@@ -22,6 +23,7 @@ export {
   text,
   title,
   val,
+  slash,
 }
 
 //////////////////////////////////////////////////
@@ -39,6 +41,7 @@ export type AddonRegistry = {
   text: TextAddon
   title: TitleAddon
   val: ValAddon
+  slash: SlashAddon
 }
 
 //////////////////////////////////////////////////
