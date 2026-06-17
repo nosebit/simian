@@ -260,6 +260,32 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     }
   }
 
+  let mut version = metadata_json
+    .get("version")
+    .and_then(|v| v.as_u64())
+    .unwrap_or(1);
+  if !dry && metadata_json.get("publishedAt").is_some() {
+    version += 1;
+    let obj = metadata_json.as_object_mut().unwrap();
+    obj.remove("publishedAt");
+    obj.remove("approvers");
+    obj.insert("version".to_string(), serde_json::json!(version));
+
+    // Write the updated metadata.json to disk so the user has the new version locally
+    std::fs::write(
+      &metadata_path,
+      serde_json::to_string_pretty(&metadata_json)?,
+    )?;
+  } else if !metadata_json.get("version").is_some() {
+    metadata_json["version"] = serde_json::json!(version);
+    if !dry {
+      std::fs::write(
+        &metadata_path,
+        serde_json::to_string_pretty(&metadata_json)?,
+      )?;
+    }
+  }
+
   let theme = dialoguer::theme::ColorfulTheme::default();
 
   if slug.is_empty() {
@@ -563,6 +589,22 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
         let mut meta = metadata_json.clone();
         if dry {
           meta["approvers"] = serde_json::json!([1024025, 810438, 6304496]);
+          meta["mockVersions"] = serde_json::json!([
+            {
+              "sha": "mock-sha-2",
+              "commit": {
+                "message": format!("Publish paper: {}", title_text),
+                "author": { "date": "2026-06-17T12:00:00Z" }
+              }
+            },
+            {
+              "sha": "mock-sha-1",
+              "commit": {
+                "message": "Initial publication",
+                "author": { "date": "2026-06-16T12:00:00Z" }
+              }
+            }
+          ]);
         }
         let metadata_str = serde_json::to_string(&meta)?;
         let injection = format!(
@@ -694,7 +736,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       } else {
         let content = std::fs::read(&path)?;
         let sha = upload_blob(&auth_client, &content).await?;
-        let tree_path = format!("published/{}/{}", slug, entry_rel);
+        let tree_path = format!("published/{}-v{}/{}", slug, version, entry_rel);
 
         tree_nodes.push(serde_json::json!({
           "path": tree_path,
@@ -705,6 +747,23 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       }
     }
   }
+
+  // Add the HTML redirect blob for the unversioned URL
+  let redirect_html = format!(
+    r#"<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Redirecting...</title>
+<meta http-equiv="refresh" content="0; URL=../{}-v{}">
+"#,
+    slug, version
+  );
+  let redirect_sha = upload_blob(&auth_client, redirect_html.as_bytes()).await?;
+  tree_nodes.push(serde_json::json!({
+    "path": format!("published/{}/index.html", slug),
+    "mode": "100644",
+    "type": "blob",
+    "sha": redirect_sha
+  }));
 
   // 5. Create Tree
   tracing::info!("Creating git tree...");

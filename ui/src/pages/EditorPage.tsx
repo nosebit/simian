@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, Loader2, Moon, Sun } from 'lucide-react'
+import { ChevronLeft, Loader2, Moon, Sun, History } from 'lucide-react'
 import { Link } from 'wouter'
 import { useTheme } from 'next-themes'
 import { Editor } from '@/editor'
@@ -103,6 +103,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 function ApproversFacepile({ approvers }: { approvers: number[] }) {
   if (!approvers || approvers.length === 0) return null
@@ -170,6 +177,7 @@ export function EditorPage({ id }: { id: string }) {
   const [approvers, setApprovers] = useState<number[]>([])
   const [publishedAt, setPublishedAt] = useState<string | null>(null)
   const [submittedAt, setSubmittedAt] = useState<string | null>(null)
+  const [versions, setVersions] = useState<any[]>([])
 
   useEffect(() => {
     if (window.__SIMIAN_PAPER_DATA__) {
@@ -189,6 +197,18 @@ export function EditorPage({ id }: { id: string }) {
         }
         if (metadata?.submittedAt) {
           setSubmittedAt(metadata.submittedAt)
+        }
+        if (metadata?.mockVersions) {
+          setVersions(metadata.mockVersions)
+        } else if (metadata?.publishedAt || metadata?.submittedAt) {
+          fetch(
+            `https://api.github.com/repos/nosebit/simian-papers/commits?path=published/${id}/index.html`,
+          )
+            .then((r) => r.json())
+            .then((data) => {
+              if (Array.isArray(data)) setVersions(data)
+            })
+            .catch(() => {})
         }
         setLoading(false)
       }, 0)
@@ -275,15 +295,53 @@ export function EditorPage({ id }: { id: string }) {
                     )}
                   </div>
                 )}
-                {(publishedAt || submittedAt) && (
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {publishedAt ? 'Published on ' : 'Submitted on '}
-                    {new Date(publishedAt || submittedAt!).toLocaleDateString(
-                      undefined,
-                      { year: 'numeric', month: 'long', day: 'numeric' },
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-4">
+                  {(publishedAt || submittedAt) && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {publishedAt ? 'Published on ' : 'Submitted on '}
+                      {new Date(publishedAt || submittedAt!).toLocaleDateString(
+                        undefined,
+                        { year: 'numeric', month: 'long', day: 'numeric' },
+                      )}
+                    </div>
+                  )}
+                  {versions.length > 1 && (
+                    <Select
+                      value={
+                        window.location.pathname.match(/-v(\d+)\/?$/)?.[1] ||
+                        versions.length.toString()
+                      }
+                      onValueChange={(val) => {
+                        window.location.href = `/${id}-v${val}/`
+                      }}
+                    >
+                      <SelectTrigger className="h-7 px-2 py-1 text-xs font-mono w-auto min-w-[110px] border-black/10 dark:border-white/10 shadow-none bg-transparent">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <History size={14} className="shrink-0" />
+                          <span>
+                            <SelectValue />
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent className="font-mono text-xs max-h-64">
+                        {versions.map((commit, i) => {
+                          const ver = versions.length - i
+                          const date = new Date(
+                            commit.commit?.author?.date,
+                          ).toLocaleDateString()
+                          return (
+                            <SelectItem key={commit.sha} value={ver.toString()}>
+                              Version {ver}{' '}
+                              <span className="text-muted-foreground ml-2 text-[10px]">
+                                {date}
+                              </span>
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </div>
             )}
           <Editor

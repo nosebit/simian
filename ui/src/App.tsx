@@ -15,6 +15,7 @@ declare global {
       slug?: string
       publishedAt?: string
       submittedAt?: string
+      mockVersions?: any[]
     }
   }
 }
