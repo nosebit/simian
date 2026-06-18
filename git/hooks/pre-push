@@ -11,13 +11,13 @@ if ! cargo fmt --check; then
 fi
 
 echo "\n2. Running clippy (cargo clippy)"
-if ! cargo clippy -- -D warnings; then
+if ! cargo clippy --all-targets --all-features -- -D warnings; then
   echo "\n❌ Error: Clippy checks failed! Please fix the warnings above."
   exit 1
 fi
 
 echo "\n3. Running tests (cargo test)"
-if ! cargo test; then
+if ! cargo test --all-targets --all-features; then
   echo "\n❌ Error: Tests failed! Please fix the failing tests."
   exit 1
 fi

@@ -276,7 +276,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       &metadata_path,
       serde_json::to_string_pretty(&metadata_json)?,
     )?;
-  } else if !metadata_json.get("version").is_some() {
+  } else if metadata_json.get("version").is_none() {
     metadata_json["version"] = serde_json::json!(version);
     if !dry {
       std::fs::write(
