@@ -290,11 +290,6 @@ export const Block = contextualize<BlockProps<ElementType>>()(
             // Mobile force-full
             isResizable && !isFull && 'max-md:w-full!',
 
-            // 3. THE MAGIC TAILWIND RULE:
-            // When THIS specific element is hovered, find the child
-            // with the [data-block-actions] attribute and make it opaque.
-            'hover:[&>span>div[data-block-actions]]:opacity-100',
-
             // Hover Bridge for toolbar/actions
             "before:absolute before:content-[''] before:-left-12 before:top-0 before:w-12 before:h-full before:z-0",
 
@@ -338,7 +333,7 @@ export const Block = contextualize<BlockProps<ElementType>>()(
                   'flex flex-col items-center gap-1',
                   'opacity-0 transition-opacity select-none',
 
-                  'group-hover:opacity-100',
+                  'group-hover/block:opacity-100',
                   '[data-is-slot=true]_&_group-hover/slot:opacity-100',
                   !actionClassName && 'md:-translate-x-full pr-2 top-0',
                   actionClassName,
