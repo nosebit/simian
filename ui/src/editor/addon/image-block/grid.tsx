@@ -95,7 +95,7 @@ export const ImageBlockGrid: FC<Props> = ({
             ])}>
               {items.map((item, idx) => (
                 <ImageDraggableItem
-                  disabled={readOnly}
+                  disabled={readOnly || items.length === 1}
                   key={item.id}
                   item={item}
                   onUploadComplete={handleUploadComplete}

@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import _ from "lodash";
-import { GalleryHorizontal, LayoutGrid, UploadCloud } from "lucide-react";
+import { LayoutGrid, UploadCloud } from "lucide-react";
+import { TbCarouselHorizontal } from "react-icons/tb";
 import { nanoid } from "nanoid";
 import {
   useCallback,
@@ -233,11 +234,12 @@ export const ImageBlock = contextualize<ElementProps<"image-block">>()([
     ...items.length > 1 ? [[{
       id: "layout-switcher",
       icon: layout === "grid"
-        ? <GalleryHorizontal className="s-4" />
+        ? <TbCarouselHorizontal className="s-4" />
         : <LayoutGrid className="s-4" />,
       onClick: () => changeLayout(
         layout === "grid" ? "carousel" : "grid"
       ),
+      tooltip: layout === "grid" ? "Switch to Carousel" : "Switch to Grid",
     }]] : []
   ], [items.length, layout, changeLayout]);
 

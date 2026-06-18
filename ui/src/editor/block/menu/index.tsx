@@ -4,6 +4,8 @@ import { Node, Transforms } from 'slate'
 import { ReactEditor, useSlateStatic } from 'slate-react'
 import { TbFloatLeft, TbFloatRight } from 'react-icons/tb'
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
 import { WidthFull, WidthStandard, WidthWide } from './icons'
 import { Button } from '@/components/ui/button'
 
@@ -16,7 +18,7 @@ import { BlockMenuButtonProps, BlockMenuItem, BlockMenuProps } from './types'
 // Utilitary Components
 //////////////////////////////////////////////////
 const DefaultMenuButton: FC<BlockMenuButtonProps> = ({ item, ...props }) => {
-  return (
+  const button = (
     <Button
       {...props}
       onMouseDown={(e: any) => {
@@ -47,7 +49,26 @@ const DefaultMenuButton: FC<BlockMenuButtonProps> = ({ item, ...props }) => {
         item.isActive &&
           'text-white bg-white/20 dark:text-zinc-950 dark:bg-zinc-200',
       )}
-    />
+    >
+      {props.children}
+    </Button>
+  )
+
+  if (!item.tooltip) {
+    return button
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          {button}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs px-2 py-1">
+          {item.tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -116,7 +137,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
         [ctx.blockId]: {
           ...(ctx.element.blocks?.[ctx.blockId] ?? {}),
           float: float === null ? undefined : float,
-          ...(float ? { width: '50%' } : {}),
+          ...(float && !ctx.float ? { width: '50%' } : {}),
         },
       }
 
@@ -127,7 +148,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
         { at: path },
       )
     },
-    [editor, ctx.blockId, ctx.element],
+    [editor, ctx.blockId, ctx.element, ctx.float],
   )
 
   const handleMouseLeave = useCallback(() => {
@@ -149,6 +170,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
                 icon: <WidthStandard className="h-4 w-4" />,
                 isActive: !ctx.width || ctx.width === 'standard',
                 onClick: () => setWidth('standard'),
+                tooltip: 'Standard Width',
               },
               ...(!ctx.float
                 ? [
@@ -157,12 +179,14 @@ export const BlockMenu: FC<BlockMenuProps> = ({
                       icon: <WidthWide className="h-4 w-4" />,
                       isActive: ctx.width === 'wide',
                       onClick: () => setWidth('wide'),
+                      tooltip: 'Wide Width',
                     },
                     {
                       id: 'width-full',
                       icon: <WidthFull className="h-4 w-4" />,
                       isActive: ctx.width === 'full',
                       onClick: () => setWidth('full'),
+                      tooltip: 'Full Width',
                     },
                   ]
                 : []),
@@ -177,12 +201,14 @@ export const BlockMenu: FC<BlockMenuProps> = ({
                 icon: <TbFloatLeft className="h-4 w-4" />,
                 isActive: ctx.float === 'left',
                 onClick: () => setFloat('left'),
+                tooltip: 'Float Left',
               },
               {
                 id: 'float-right',
                 icon: <TbFloatRight className="h-4 w-4" />,
                 isActive: ctx.float === 'right',
                 onClick: () => setFloat('right'),
+                tooltip: 'Float Right',
               },
             ] satisfies BlockMenuItem[],
           ]

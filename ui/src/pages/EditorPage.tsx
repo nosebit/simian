@@ -297,7 +297,7 @@ export function EditorPage({ id }: { id: string }) {
           workspace...
         </div>
       ) : (
-        <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-24 px-8 text-base">
+        <div className="flex-1 w-full max-w-4xl mx-auto mt-24 pb-64 px-8 text-base">
           {mode === 'read' &&
             (authors.length > 0 ||
               approvers.length > 0 ||

@@ -22,7 +22,7 @@ const HeadingBase: FC<
           as="h2"
           element={element}
           className={clsx([
-            'mb-5 border-b pb-2 text-3xl font-semibold tracking-tight',
+            'mb-5 border-b dark:border-white/10 pb-2 text-3xl font-semibold tracking-tight',
             !omitTopMargin && 'mt-12',
             className,
           ])}

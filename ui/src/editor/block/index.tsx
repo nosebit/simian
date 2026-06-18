@@ -284,8 +284,8 @@ export const Block = contextualize<BlockProps<ElementType>>()(
             isCustom && !isFloating && 'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
 
             // FLOAT LOGIC
-            isFloatLeft && 'md:float-left md:mr-10 pb-4 !clear-none',
-            isFloatRight && 'md:float-right md:ml-10 pb-4 !clear-none',
+            isFloatLeft && 'md:float-left md:mr-10 md:mb-2 !clear-none z-10',
+            isFloatRight && 'md:float-right md:ml-6 md:mb-2 !clear-none z-10',
 
             // Mobile force-full
             isResizable && !isFull && 'max-md:w-full!',
@@ -316,7 +316,7 @@ export const Block = contextualize<BlockProps<ElementType>>()(
         )}
 
           {/* 2. Actions (Plus Button + Custom Actions) */}
-          {mode === 'write' && actionItems.length > 0 && (
+          {mode === 'write' && actionItems.length > 0 && !isFloating && (
             <span
               contentEditable={false}
               className={clsx(
