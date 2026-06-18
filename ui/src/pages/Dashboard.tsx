@@ -105,7 +105,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="fixed top-0 left-0 w-full z-50 flex items-center justify-between p-4 px-8 bg-white dark:bg-[#0d1117]">
+      <header className="fixed top-0 left-0 w-full z-50 flex items-center justify-between p-4 md:px-8 bg-white dark:bg-[#0d1117]">
         <div className="flex items-center gap-3">
           <img
             src={Logo}

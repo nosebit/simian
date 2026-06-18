@@ -18,6 +18,7 @@ import {
 
 import { contextualize } from "@/ui/editor/context";
 import { ElementProps } from "@/ui/editor/types";
+import { useMediaQuery } from "@uidotdev/usehooks";
 
 import { Block, BlockMenuItem } from "../../block";
 import { ImageBlockElement, ImageItem, ImageItemWithUpload, Upload } from "./types";
@@ -37,7 +38,7 @@ export const ImageBlock = contextualize<ElementProps<"image-block">>()([
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [focus, setFocusBase] = useState<ItemFocus | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const isMobile = false;
+  const isMobile = useMediaQuery("only screen and (max-width : 768px)");
 
   const isReadMode = editor.mode === "read";
 

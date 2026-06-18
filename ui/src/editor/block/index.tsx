@@ -284,8 +284,8 @@ export const Block = contextualize<BlockProps<ElementType>>()(
             isCustom && !isFloating && 'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
 
             // FLOAT LOGIC
-            isFloatLeft && 'float-left mr-10 pb-4 !clear-none',
-            isFloatRight && 'float-right ml-10 pb-4 !clear-none',
+            isFloatLeft && 'md:float-left md:mr-10 pb-4 !clear-none',
+            isFloatRight && 'md:float-right md:ml-10 pb-4 !clear-none',
 
             // Mobile force-full
             isResizable && !isFull && 'max-md:w-full!',
