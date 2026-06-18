@@ -13,23 +13,22 @@ export function useResizer(
       e.preventDefault()
 
       const handle = e.currentTarget as HTMLElement
-      const container = handle.parentElement as HTMLElement
+      const container = handle.closest('[data-block-id]') as HTMLElement
       // Ensure this selector matches your editor root class
       const editorRoot =
         (container.closest('.editor-root') as HTMLElement) || document.body
 
       const startX = e.clientX
       const startWidthPx = container.offsetWidth
-      const editorWidthPx = editorRoot.offsetWidth
 
       const SNAP_THRESHOLD = 30
       // These should match your Tailwind breakpoints/max-widths
-      const standardWidthPx = Number(editorRoot.dataset.standardWidth) || 720
+      const standardWidthPx = Number(editorRoot.dataset.standardWidth) || editorRoot.offsetWidth
       const wideWidthPx = Number(editorRoot.dataset.wideWidth) || 1024
 
       const getSnappedValue = (currentWidthPx: number) => {
         // 1. Full Snap
-        if (Math.abs(currentWidthPx - editorWidthPx) < SNAP_THRESHOLD) {
+        if (Math.abs(currentWidthPx - window.innerWidth) < SNAP_THRESHOLD) {
           return { label: 'full', value: '100%' }
         }
         // 2. Wide Snap
@@ -41,12 +40,12 @@ export function useResizer(
           return { label: 'standard', value: '100%' }
         }
 
-        // Default: Percentage string
-        const percentage = Math.min(
-          100,
-          Math.max(10, (currentWidthPx / editorWidthPx) * 100),
+        // Default: Pixel string
+        const clampedWidthPx = Math.min(
+          window.innerWidth,
+          Math.max(200, currentWidthPx),
         )
-        const val = `${percentage.toFixed(2)}%`
+        const val = `${Math.round(clampedWidthPx)}px`
         return { label: val, value: val }
       }
 
