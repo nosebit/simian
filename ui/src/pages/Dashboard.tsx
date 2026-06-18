@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useTheme } from 'next-themes'
-import { Plus, Loader2, FileText, Calendar, Moon, Sun } from 'lucide-react'
+import { Plus, Loader2, FileText, Calendar, Moon, Sun, Trash } from 'lucide-react'
 import Logo from '../assets/logo_w_text.png'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface PaperMetadata {
   id: string
@@ -66,6 +77,19 @@ export function Dashboard() {
       }
     } catch (e) {
       console.error('Failed to create paper', e)
+    }
+  }
+
+  const handleDeletePaper = async (id: string) => {
+    try {
+      const res = await fetch(`/api/paper/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPapers((prev) => prev.filter((p) => p.id !== id))
+      } else {
+        console.error('Failed to delete paper', res.statusText)
+      }
+    } catch (e) {
+      console.error('Failed to delete paper', e)
     }
   }
 
@@ -134,6 +158,7 @@ export function Dashboard() {
                   <TableHead>Title</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead className="text-right">Last Modified</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,6 +184,38 @@ export function Dashboard() {
                         <Calendar className="w-3 h-3" />
                         {formatDate(paper.last_modified)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 -mr-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash size={16} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently move the paper
+                              to the trash directory.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeletePaper(paper.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}

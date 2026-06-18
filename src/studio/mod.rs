@@ -1,9 +1,10 @@
 use async_stream::stream;
 use axum::body::Body;
+use axum::http::StatusCode;
 use axum::response::Response;
 use axum::{
   extract::{Multipart, Path as AxumPath, State},
-  routing::{get, post},
+  routing::{delete, get, post},
   Json, Router,
 };
 use bytes::Bytes;
@@ -83,6 +84,9 @@ async fn list_papers(State(state): State<Arc<AppState>>) -> Json<Vec<PaperMetada
       if let Ok(file_type) = entry.file_type()
         && file_type.is_symlink()
       {
+        continue;
+      }
+      if entry.file_name() == ".trash" {
         continue;
       }
       if entry.path().is_dir() {
@@ -175,6 +179,34 @@ async fn create_paper(State(state): State<Arc<AppState>>) -> Json<CreatePaperRes
   let id = format!("paper-{:06x}", rand::random::<u32>() & 0xFFFFFF);
   let _ = create_paper_dir(&state.base_dir, &id);
   Json(CreatePaperResponse { id })
+}
+
+async fn delete_paper(
+  State(state): State<Arc<AppState>>,
+  AxumPath(id): AxumPath<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+  let paper_dir = state.base_dir.join(&id);
+  if !paper_dir.exists() || !paper_dir.is_dir() {
+    return Err((StatusCode::NOT_FOUND, "Paper not found".to_string()));
+  }
+
+  let trash_dir = state.base_dir.join(".trash");
+  if let Err(e) = std::fs::create_dir_all(&trash_dir) {
+    return Err((
+      StatusCode::INTERNAL_SERVER_ERROR,
+      format!("Failed to create trash directory: {}", e),
+    ));
+  }
+
+  let trash_path = trash_dir.join(&id);
+  if let Err(e) = std::fs::rename(&paper_dir, &trash_path) {
+    return Err((
+      StatusCode::INTERNAL_SERVER_ERROR,
+      format!("Failed to move paper to trash: {}", e),
+    ));
+  }
+
+  Ok(StatusCode::OK)
 }
 
 async fn execute_code(
@@ -453,6 +485,7 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
 
   let api_router = Router::new()
     .route("/papers", get(list_papers).post(create_paper))
+    .route("/paper/{id}", delete(delete_paper))
     .route("/execute/{id}", post(execute_code))
     .route("/paper/{id}/content", get(get_content).post(save_content))
     .route("/paper/{id}/assets", post(upload_asset))
