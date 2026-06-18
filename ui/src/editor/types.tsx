@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { Text } from './addon/text'
 import { AddonRegistry, EditorAddon } from './addon'
+import type { ImageBlockElement } from './addon/image-block/types'
 import { EditorContextValue } from './context'
 import {
   BlockElementSchema,
@@ -77,8 +78,9 @@ export type BlockElement =
 
 export type InlineElement = z.infer<typeof InlineElementSchema>
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface CustomElements {}
+export interface CustomElements {
+  'image-block': ImageBlockElement
+}
 
 export type Element =
   | BlockElement

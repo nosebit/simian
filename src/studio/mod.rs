@@ -2,9 +2,9 @@ use async_stream::stream;
 use axum::body::Body;
 use axum::response::Response;
 use axum::{
-  Json, Router,
-  extract::{Path as AxumPath, State},
+  extract::{Multipart, Path as AxumPath, State},
   routing::{get, post},
+  Json, Router,
 };
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
@@ -282,6 +282,93 @@ async fn save_content(
   }
 }
 
+#[derive(Serialize)]
+pub struct UploadResponse {
+  pub url: String,
+}
+
+async fn upload_asset(
+  State(state): State<Arc<AppState>>,
+  AxumPath(id): AxumPath<String>,
+  mut multipart: Multipart,
+) -> Result<Json<UploadResponse>, (axum::http::StatusCode, String)> {
+  let paper_dir = state.base_dir.join(&id);
+  let assets_dir = paper_dir.join("assets");
+  std::fs::create_dir_all(&assets_dir).map_err(|e| {
+    let _ = std::fs::write("/tmp/simian-error.log", format!("create_dir_all error: {}", e));
+    (
+      axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+      e.to_string(),
+    )
+  })?;
+
+  let mut uploaded_filename = String::new();
+
+  while let Some(field) = multipart.next_field().await.map_err(|e| {
+    (
+      axum::http::StatusCode::BAD_REQUEST,
+      e.to_string(),
+    )
+  })? {
+    if let Some(file_name) = field.file_name() {
+      let file_name = file_name.to_string();
+      let ext = std::path::Path::new(&file_name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("bin");
+      let unique_name = format!("{:08x}.{}", rand::random::<u32>(), ext);
+
+      let data = field.bytes().await.map_err(|e| {
+        (
+          axum::http::StatusCode::BAD_REQUEST,
+          e.to_string(),
+        )
+      })?;
+      let dest_path = assets_dir.join(&unique_name);
+      std::fs::write(&dest_path, &data).map_err(|e| {
+        let _ = std::fs::write("/tmp/simian-error.log", format!("fs::write error: {} at {:?}", e, dest_path));
+        (
+          axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+          e.to_string(),
+        )
+      })?;
+
+      uploaded_filename = unique_name;
+      break; // Only handle the first file for simplicity
+    }
+  }
+
+  if uploaded_filename.is_empty() {
+    return Err((
+      axum::http::StatusCode::BAD_REQUEST,
+      "No file found in multipart request".to_string(),
+    ));
+  }
+
+  Ok(Json(UploadResponse {
+    url: format!("/api/paper/{}/assets/{}", id, uploaded_filename),
+  }))
+}
+
+async fn serve_asset(
+  State(state): State<Arc<AppState>>,
+  AxumPath((id, path)): AxumPath<(String, String)>,
+) -> Response {
+  let file_path = state.base_dir.join(&id).join("assets").join(&path);
+  if let Ok(content) = std::fs::read(&file_path) {
+    let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
+    axum::response::Response::builder()
+      .header(axum::http::header::CONTENT_TYPE, mime.as_ref())
+      .body(Body::from(content))
+      .unwrap()
+  } else {
+    axum::response::Response::builder()
+      .status(axum::http::StatusCode::NOT_FOUND)
+      .body(Body::from("Asset not found"))
+      .unwrap()
+  }
+}
+
 #[derive(Deserialize)]
 pub struct HtmlQuery {
   path: String,
@@ -369,6 +456,8 @@ pub async fn run(path: Option<String>, dev: bool) -> anyhow::Result<()> {
     .route("/papers", get(list_papers).post(create_paper))
     .route("/execute/{id}", post(execute_code))
     .route("/paper/{id}/content", get(get_content).post(save_content))
+    .route("/paper/{id}/assets", post(upload_asset))
+    .route("/paper/{id}/assets/{*path}", get(serve_asset))
     .route("/html", get(serve_html))
     .with_state(state.clone());
 

@@ -133,17 +133,17 @@ const onKeyDown: SlashAddon["onKeyDown"] = ({ addon }, evt) => {
       case "ArrowDown": {
         evt.preventDefault();
         moveSlashCmd?.(1);
-        break;
+        return true;
       }
       case "ArrowUp": {
         evt.preventDefault();
         moveSlashCmd?.(-1);
-        break;
+        return true;
       }
       case "Enter": {
         evt.preventDefault();
         runSlashCmd?.();
-        break;
+        return true;
       }
       case " ": {
         setSlash?.(null);
@@ -152,7 +152,7 @@ const onKeyDown: SlashAddon["onKeyDown"] = ({ addon }, evt) => {
       case "Escape": {
         evt.preventDefault();
         setSlash?.(null);
-        break;
+        return true;
       }
     }
   }

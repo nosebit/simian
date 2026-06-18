@@ -10,6 +10,7 @@ import { text, TextAddon } from './text'
 import { title, TitleAddon } from './title'
 import { val, ValAddon } from './val'
 import { slash, SlashAddon } from './slash'
+import { imageBlock, ImageBlockAddon } from './image-block'
 
 export {
   codeBlock,
@@ -24,6 +25,7 @@ export {
   title,
   val,
   slash,
+  imageBlock,
 }
 
 //////////////////////////////////////////////////
@@ -42,6 +44,7 @@ export type AddonRegistry = {
   title: TitleAddon
   val: ValAddon
   slash: SlashAddon
+  imageBlock: ImageBlockAddon
 }
 
 //////////////////////////////////////////////////

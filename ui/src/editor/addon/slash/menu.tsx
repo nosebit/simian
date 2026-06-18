@@ -3,6 +3,7 @@ import {
   FC,
   Fragment,
   useState,
+  useEffect,
   useLayoutEffect,
 } from "react";
 import { createPortal } from "react-dom";
@@ -46,6 +47,14 @@ export const SlashMenu: FC = () => {
     })();
   }, [editor, slash]);
 
+  useEffect(() => {
+    if (!slash) return;
+    const el = document.getElementById(`slash-cmd-${cmdIdx}`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest" });
+    }
+  }, [cmdIdx, slash]);
+
   if (!slash) {
     return null;
   }
@@ -69,12 +78,13 @@ export const SlashMenu: FC = () => {
               {group.commands.map((cmd) => (
                 <CommandItem
                   key={cmd.id}
+                  id={`slash-cmd-${cmd.idx}`}
                   onSelect={() => runSlashCmd(cmd)}
                   className={clsx([
                     "cursor-pointer flex items-center gap-1 px-2 py-1.5 text-sm rounded-sm outline-none",
                     "data-[selected=true]:bg-transparent data-[selected=true]:text-foreground",
                     cmdIdx === cmd.idx
-                      ? "bg-accent! text-accent-foreground!"
+                      ? "!bg-accent !text-accent-foreground"
                       : "text-foreground"
                   ])}
                   onMouseEnter={() => {

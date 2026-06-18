@@ -136,8 +136,8 @@ export const Block = contextualize<BlockProps<ElementType>>()(
 
     // 4. DISPLAY CSS WIDTH
     const displayWidth = useMemo(() => {
-      if (isFull || isWide || isStandard) return '100%'
-      return currentWidth || '100%'
+      if (isFull || isWide || isStandard) return undefined
+      return currentWidth
     }, [isFull, isWide, isStandard, currentWidth])
 
     // const { previewWidth, handleResizeStart } = useResizer(
@@ -262,10 +262,10 @@ export const Block = contextualize<BlockProps<ElementType>>()(
 
             // WIDTH & CONSTRAINT LOGIC
             // 1. Full: breaks out completely
-            isFull && 'max-w-none w-full',
+            isFull && 'relative left-1/2 right-1/2 mx-auto w-[100vw] max-w-none -translate-x-1/2',
 
             // 2. Wide: breaks out to a larger predefined limit
-            isWide && 'max-w-5xl w-full',
+            isWide && 'relative left-1/2 right-1/2 mx-auto w-[100vw] max-w-5xl -translate-x-1/2',
 
             // 3. Standard or Custom: respects the main editor column (blockClass)
             (isStandard || isCustom) && blockClass,

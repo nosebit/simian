@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { CodeBlockSlashCommandIds } from "@/ui/editor/addon/code-block/slash";
 import { ColumnSlashCommandIds } from "@/ui/editor/addon/column/slash";
 import { HeadingSlashCommandIds } from "@/ui/editor/addon/heading/slash";
+import { ImageBlockSlashCommandIds } from "@/ui/editor/addon/image-block/slash";
 import { LatexBlockSlashCommandIds } from "@/ui/editor/addon/latex-block/slash";
 import { ParagraphSlashCommandIds } from "@/ui/editor/addon/paragraph/slash";
 
@@ -17,6 +18,7 @@ export type CommandId =
   | CodeBlockSlashCommandIds
   | ColumnSlashCommandIds
   | HeadingSlashCommandIds
+  | ImageBlockSlashCommandIds
   | LatexBlockSlashCommandIds
   | ParagraphSlashCommandIds;
 

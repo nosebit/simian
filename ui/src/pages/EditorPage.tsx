@@ -11,6 +11,7 @@ import { root } from '@/editor/addon/root'
 import { subtitle } from '@/editor/addon/subtitle'
 import { heading } from '@/editor/addon/heading'
 import { column } from '@/editor/addon/column'
+import { imageBlock } from '@/editor/addon/image-block'
 import { latexBlock } from '@/editor/addon/latex-block'
 import { latexInline } from '@/editor/addon/latex-inline'
 import { slash } from '@/editor/addon/slash'
@@ -249,6 +250,24 @@ export function EditorPage({ id }: { id: string }) {
     latexBlock(),
     latexInline(),
     codeBlock(),
+    imageBlock({
+      fileUploadAction: async ({ file }: { file: File }) => {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const res = await fetch(`/api/paper/${id}/assets`, {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!res.ok) {
+          throw new Error('Upload failed')
+        }
+
+        const data = await res.json()
+        return { data: { id: data.url, url: data.url, mime: file.type } }
+      },
+    }),
     slash(),
   ]
 

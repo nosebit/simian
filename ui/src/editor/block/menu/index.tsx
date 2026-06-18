@@ -3,9 +3,7 @@ import clsx from 'clsx'
 import { Node, Transforms } from 'slate'
 import { ReactEditor, useSlateStatic } from 'slate-react'
 
-import WidthFull from '../../../assets/width-full.svg'
-import WidthStandard from '../../../assets/width-standard.svg'
-import WidthWide from '../../../assets/width-wide.svg'
+import { WidthFull, WidthStandard, WidthWide } from './icons'
 import { Button } from '@/components/ui/button'
 
 import { useMode } from '../../context'
@@ -20,7 +18,15 @@ const DefaultMenuButton: FC<BlockMenuButtonProps> = ({ item, ...props }) => {
   return (
     <Button
       {...props}
-      onClick={item.onClick ?? props.onClick}
+      onMouseDown={(e: any) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (item.onClick) {
+          item.onClick(e)
+        } else if (props.onClick) {
+          props.onClick(e)
+        }
+      }}
       variant="ghost"
       size="icon"
       className={clsx(
@@ -118,9 +124,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
               {
                 id: 'width-standard',
                 icon: (
-                  <WidthStandard // @ts-expect-error
-                    className="h-4 w-4"
-                  />
+                  <WidthStandard className="h-4 w-4" />
                 ),
                 isActive: !ctx.width || ctx.width === 'standard',
                 onClick: () => setWidth('standard'),
@@ -128,9 +132,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
               {
                 id: 'width-wide',
                 icon: (
-                  <WidthWide // @ts-expect-error
-                    className="h-4 w-4"
-                  />
+                  <WidthWide className="h-4 w-4" />
                 ),
                 isActive: ctx.width === 'wide',
                 onClick: () => setWidth('wide'),
@@ -138,9 +140,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
               {
                 id: 'width-full',
                 icon: (
-                  <WidthFull // @ts-expect-error
-                    className="h-4 w-4"
-                  />
+                  <WidthFull className="h-4 w-4" />
                 ),
                 isActive: ctx.width === 'full',
                 onClick: () => setWidth('full'),
@@ -207,6 +207,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
             'flex items-start justify-center', // Centering logic
             isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none',
           )}
+          contentEditable={false}
           onMouseEnter={handleMouseEnter}
         >
           {/* THE ACTUAL MENU */}
@@ -257,8 +258,6 @@ export const BlockMenu: FC<BlockMenuProps> = ({
 
       {/* Main Content */}
       <div
-        //// @ts-expect-error
-        className="bg-blue-400"
         onMouseEnter={handleMouseEnter}
       >
         {children}
