@@ -1,15 +1,19 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react'
 
-import { Slash, SlashCommandGroupWithIndex, SlashCommandWithIndex } from "./types";
+import {
+  Slash,
+  SlashCommandGroupWithIndex,
+  SlashCommandWithIndex,
+} from './types'
 
 export interface SlashContextValue {
-  commands: SlashCommandWithIndex[];
-  cmdIdx: number;
-  groups: SlashCommandGroupWithIndex[];
-  runSlashCmd: (cmd: SlashCommandWithIndex) => void;
-  slash: Slash | null;
-  setCmdIdx: React.Dispatch<React.SetStateAction<number>>; 
-  setSlash: (slash: Slash | null ) => void;
+  commands: SlashCommandWithIndex[]
+  cmdIdx: number
+  groups: SlashCommandGroupWithIndex[]
+  runSlashCmd: (cmd: SlashCommandWithIndex) => void
+  slash: Slash | null
+  setCmdIdx: React.Dispatch<React.SetStateAction<number>>
+  setSlash: (slash: Slash | null) => void
 }
 
 export const SlashContext = createContext<SlashContextValue>({
@@ -20,8 +24,8 @@ export const SlashContext = createContext<SlashContextValue>({
   slash: null,
   setCmdIdx: () => {},
   setSlash: () => {},
-});
+})
 
 export const useSlash = () => {
-  return useContext(SlashContext);
-};
+  return useContext(SlashContext)
+}

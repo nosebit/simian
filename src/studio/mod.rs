@@ -3,9 +3,9 @@ use axum::body::Body;
 use axum::http::StatusCode;
 use axum::response::Response;
 use axum::{
+  Json, Router,
   extract::{Multipart, Path as AxumPath, State},
   routing::{delete, get, post},
-  Json, Router,
 };
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
@@ -326,21 +326,20 @@ async fn upload_asset(
   let paper_dir = state.base_dir.join(&id);
   let assets_dir = paper_dir.join("assets");
   std::fs::create_dir_all(&assets_dir).map_err(|e| {
-    let _ = std::fs::write("/tmp/simian-error.log", format!("create_dir_all error: {}", e));
-    (
-      axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-      e.to_string(),
-    )
+    let _ = std::fs::write(
+      "/tmp/simian-error.log",
+      format!("create_dir_all error: {}", e),
+    );
+    (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
   })?;
 
   let mut uploaded_filename = String::new();
 
-  while let Some(field) = multipart.next_field().await.map_err(|e| {
-    (
-      axum::http::StatusCode::BAD_REQUEST,
-      e.to_string(),
-    )
-  })? {
+  while let Some(field) = multipart
+    .next_field()
+    .await
+    .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?
+  {
     if let Some(file_name) = field.file_name() {
       let file_name = file_name.to_string();
       let ext = std::path::Path::new(&file_name)
@@ -349,19 +348,17 @@ async fn upload_asset(
         .unwrap_or("bin");
       let unique_name = format!("{:08x}.{}", rand::random::<u32>(), ext);
 
-      let data = field.bytes().await.map_err(|e| {
-        (
-          axum::http::StatusCode::BAD_REQUEST,
-          e.to_string(),
-        )
-      })?;
+      let data = field
+        .bytes()
+        .await
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?;
       let dest_path = assets_dir.join(&unique_name);
       std::fs::write(&dest_path, &data).map_err(|e| {
-        let _ = std::fs::write("/tmp/simian-error.log", format!("fs::write error: {} at {:?}", e, dest_path));
-        (
-          axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-          e.to_string(),
-        )
+        let _ = std::fs::write(
+          "/tmp/simian-error.log",
+          format!("fs::write error: {} at {:?}", e, dest_path),
+        );
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
       })?;
 
       uploaded_filename = unique_name;

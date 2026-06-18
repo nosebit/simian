@@ -1,12 +1,12 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { FC } from "react";
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { FC } from 'react'
 
-import { ImageBaseItem } from "./base";
-import { ImageItemProps } from "./types";
+import { ImageBaseItem } from './base'
+import { ImageItemProps } from './types'
 
 export const ImageDraggableItem: FC<ImageItemProps> = (props) => {
-  const { disabled, item } = props;
+  const { disabled, item } = props
   const {
     attributes,
     listeners,
@@ -17,7 +17,7 @@ export const ImageDraggableItem: FC<ImageItemProps> = (props) => {
   } = useSortable({
     id: item.id,
     disabled,
-  });
+  })
 
   return (
     <ImageBaseItem
@@ -31,5 +31,5 @@ export const ImageDraggableItem: FC<ImageItemProps> = (props) => {
         transition,
       }}
     />
-  );
+  )
 }

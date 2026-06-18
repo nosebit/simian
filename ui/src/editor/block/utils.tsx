@@ -23,7 +23,8 @@ export function useResizer(
 
       const SNAP_THRESHOLD = 30
       // These should match your Tailwind breakpoints/max-widths
-      const standardWidthPx = Number(editorRoot.dataset.standardWidth) || editorRoot.offsetWidth
+      const standardWidthPx =
+        Number(editorRoot.dataset.standardWidth) || editorRoot.offsetWidth
       const wideWidthPx = Number(editorRoot.dataset.wideWidth) || 1024
 
       const getSnappedValue = (currentWidthPx: number) => {

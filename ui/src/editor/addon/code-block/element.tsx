@@ -300,8 +300,9 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
               </SelectContent>
             </Select>
 
-             {/* Execute Button */}
-             {(element.language === 'rust' || !element.language) && mode === 'write' && (
+            {/* Execute Button */}
+            {(element.language === 'rust' || !element.language) &&
+              mode === 'write' && (
                 <button
                   onClick={() => {
                     const path = ReactEditor.findPath(editor, element)
@@ -322,7 +323,7 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
                     <Play className="w-3.5 h-3.5 ml-0.5" />
                   )}
                 </button>
-             )}
+              )}
           </div>
           <pre
             className={clsx([

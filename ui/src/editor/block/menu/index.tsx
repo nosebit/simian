@@ -4,7 +4,12 @@ import { Node, Transforms } from 'slate'
 import { ReactEditor, useSlateStatic } from 'slate-react'
 import { TbFloatLeft, TbFloatRight } from 'react-icons/tb'
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 import { WidthFull, WidthStandard, WidthWide } from './icons'
 import { Button } from '@/components/ui/button'
@@ -61,9 +66,7 @@ const DefaultMenuButton: FC<BlockMenuButtonProps> = ({ item, ...props }) => {
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
-        <TooltipTrigger asChild>
-          {button}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent side="top" className="text-xs px-2 py-1">
           {item.tooltip}
         </TooltipContent>
@@ -142,11 +145,9 @@ export const BlockMenu: FC<BlockMenuProps> = ({
       }
 
       const path = ReactEditor.findPath(editor, ctx.element)
-      Transforms.setNodes(
-        editor,
-        { blocks: newBlocks } as Partial<Node>,
-        { at: path },
-      )
+      Transforms.setNodes(editor, { blocks: newBlocks } as Partial<Node>, {
+        at: path,
+      })
     },
     [editor, ctx.blockId, ctx.element, ctx.float],
   )
@@ -322,11 +323,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
       )}
 
       {/* Main Content */}
-      <div
-        onMouseEnter={handleMouseEnter}
-      >
-        {children}
-      </div>
+      <div onMouseEnter={handleMouseEnter}>{children}</div>
     </div>
   )
 }

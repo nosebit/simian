@@ -1,41 +1,41 @@
-import { Range } from "slate";
+import { Range } from 'slate'
 
-import { SlashAddonCommand, VoidAddon } from "../types";
-import { SlashContextValue } from "./context";
-import { CommandId } from "./command";
+import { SlashAddonCommand, VoidAddon } from '../types'
+import { SlashContextValue } from './context'
+import { CommandId } from './command'
 
 export interface Slash {
-  range: Range | null;
-  query: string;
+  range: Range | null
+  query: string
 }
 
 //////////////////////////////////////////////////
 // Slash Addon
 //////////////////////////////////////////////////
 export type SlashAddon = VoidAddon<
-  "slash",
-  Pick<SlashContextValue, "slash" | "setSlash"> & {
-    commandIds?: CommandId[];
-    moveSlashCmd?: (direction: -1 | 1) => void;
-    runSlashCmd?: () => void;
+  'slash',
+  Pick<SlashContextValue, 'slash' | 'setSlash'> & {
+    commandIds?: CommandId[]
+    moveSlashCmd?: (direction: -1 | 1) => void
+    runSlashCmd?: () => void
   }
->;
+>
 
 //////////////////////////////////////////////////
 // Slash Command Group
 //////////////////////////////////////////////////
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SlashCommand = SlashAddonCommand<string, string> & { addon: any };
-export type SlashCommandWithIndex = SlashCommand & { idx: number };
+
+export type SlashCommand = SlashAddonCommand<string, string> & { addon: any }
+export type SlashCommandWithIndex = SlashCommand & { idx: number }
 
 export type SlashCommandGroup = {
-  id: string;
-  title: string;
-  commands: SlashCommand[];
-};
+  id: string
+  title: string
+  commands: SlashCommand[]
+}
 
-export type SlashCommandGroupWithIndex = Omit<SlashCommandGroup, "commands"> & {
-  commands: SlashCommandWithIndex[];
+export type SlashCommandGroupWithIndex = Omit<SlashCommandGroup, 'commands'> & {
+  commands: SlashCommandWithIndex[]
 }
 
 // //////////////////////////////////////////////////

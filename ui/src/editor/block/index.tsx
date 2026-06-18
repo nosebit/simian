@@ -120,9 +120,9 @@ export const Block = contextualize<BlockProps<ElementType>>()(
             {
               blocks: {
                 ...(element.blocks ?? {}),
-                [blockId]: { 
+                [blockId]: {
                   ...(element.blocks?.[blockId] ?? {}),
-                  width: finalWidth 
+                  width: finalWidth,
                 },
               },
             } as Partial<Node>,
@@ -268,20 +268,27 @@ export const Block = contextualize<BlockProps<ElementType>>()(
           // }}
           className={clsx(
             'group/block relative mx-auto',
-            previewWidth === undefined && 'transition-[width,max-width] duration-200 ease-in-out',
+            previewWidth === undefined &&
+              'transition-[width,max-width] duration-200 ease-in-out',
 
             // WIDTH & CONSTRAINT LOGIC
             // 1. Full: breaks out completely
-            isFull && !isFloating && 'relative left-1/2 right-1/2 w-[100vw] max-w-none -translate-x-1/2 !mx-0',
+            isFull &&
+              !isFloating &&
+              'relative left-1/2 right-1/2 w-[100vw] max-w-none -translate-x-1/2 !mx-0',
 
             // 2. Wide: breaks out to a larger predefined limit
-            isWide && !isFloating && 'relative left-1/2 right-1/2 w-[100vw] max-w-5xl -translate-x-1/2 !mx-0',
+            isWide &&
+              !isFloating &&
+              'relative left-1/2 right-1/2 w-[100vw] max-w-5xl -translate-x-1/2 !mx-0',
 
             // 3. Standard: respects the main editor column (blockClass)
             isStandard && !isFloating && blockClass,
 
             // 4. Custom: breaks out but uses explicit width
-            isCustom && !isFloating && 'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
+            isCustom &&
+              !isFloating &&
+              'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
 
             // FLOAT LOGIC
             isFloatLeft && 'md:float-left md:mr-10 md:mb-2 !clear-none z-10',
@@ -298,32 +305,32 @@ export const Block = contextualize<BlockProps<ElementType>>()(
           )}
         >
           {/* Resize Handles */}
-          {isResizable && mode === "write" && !isFull && (
-          <div className="hidden md:block" contentEditable={false}>
-            <div
-              onMouseDown={(e) => handleResizeStart(e, "left")}
-              className="absolute left-0 top-0 w-6 h-full cursor-col-resize z-30 flex items-center justify-center opacity-0 group-hover/block:opacity-100 transition-opacity"
-            >
-              <div className="w-1.5 h-12 rounded-full bg-zinc-950/30 backdrop-blur-md border border-white shadow-sm" />
+          {isResizable && mode === 'write' && !isFull && (
+            <div className="hidden md:block" contentEditable={false}>
+              <div
+                onMouseDown={(e) => handleResizeStart(e, 'left')}
+                className="absolute left-0 top-0 w-6 h-full cursor-col-resize z-30 flex items-center justify-center opacity-0 group-hover/block:opacity-100 transition-opacity"
+              >
+                <div className="w-1.5 h-12 rounded-full bg-zinc-950/30 backdrop-blur-md border border-white shadow-sm" />
+              </div>
+              <div
+                onMouseDown={(e) => handleResizeStart(e, 'right')}
+                className="absolute right-0 top-0 w-6 h-full cursor-col-resize z-30 flex items-center justify-center opacity-0 group-hover/block:opacity-100 transition-opacity"
+              >
+                <div className="w-1.5 h-12 rounded-full bg-zinc-950/30 backdrop-blur-md border border-white shadow-sm" />
+              </div>
             </div>
-            <div
-              onMouseDown={(e) => handleResizeStart(e, "right")}
-              className="absolute right-0 top-0 w-6 h-full cursor-col-resize z-30 flex items-center justify-center opacity-0 group-hover/block:opacity-100 transition-opacity"
-            >
-              <div className="w-1.5 h-12 rounded-full bg-zinc-950/30 backdrop-blur-md border border-white shadow-sm" />
-            </div>
-          </div>
-        )}
+          )}
 
           {/* 2. Actions (Plus Button + Custom Actions) */}
           {mode === 'write' && actionItems.length > 0 && !isFloating && (
             <span
               contentEditable={false}
               className={clsx(
-                "z-10",
+                'z-10',
                 element.type === 'paragraph'
-                  ? "inline-block relative w-0 h-0 align-top"
-                  : "absolute left-0 top-0 w-0 h-0"
+                  ? 'inline-block relative w-0 h-0 align-top'
+                  : 'absolute left-0 top-0 w-0 h-0',
               )}
             >
               <div

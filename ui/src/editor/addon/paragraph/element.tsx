@@ -44,7 +44,9 @@ export const Paragraph: FC<ElementProps<'paragraph'>> = ({
   const isOnlyParagraph = useMemo(() => {
     try {
       const container = getBlockContainer(editor)
-      const paragraphs = container.node.children.filter((c: any) => c.type === 'paragraph')
+      const paragraphs = container.node.children.filter(
+        (c: any) => c.type === 'paragraph',
+      )
       return paragraphs.length === 1
     } catch {
       return false

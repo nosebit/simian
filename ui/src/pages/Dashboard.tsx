@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useTheme } from 'next-themes'
-import { Plus, Loader2, FileText, Calendar, Moon, Sun, Trash } from 'lucide-react'
+import {
+  Plus,
+  Loader2,
+  FileText,
+  Calendar,
+  Moon,
+  Sun,
+  Trash,
+} from 'lucide-react'
 import Logo from '../assets/logo_w_text.png'
 import { Button } from '@/components/ui/button'
 import {
@@ -197,12 +205,16 @@ export function Dashboard() {
                             <Trash size={16} />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogContent
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Are you absolutely sure?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently move the paper
-                              to the trash directory.
+                              This action cannot be undone. This will
+                              permanently move the paper to the trash directory.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

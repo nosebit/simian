@@ -57,7 +57,7 @@ export const Title: FC<ElementProps<'title'>> = ({
                     type: 'subtitle',
                     children: [{ text: '' }],
                   },
-                  { at: nextPath }
+                  { at: nextPath },
                 )
                 Transforms.select(editor, Editor.start(editor, nextPath))
               },
