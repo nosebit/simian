@@ -33,7 +33,7 @@ export const SubTitle: FC<ElementProps<'subtitle'>> = ({
     <Block
       element={element}
       className={clsx([
-        'outline-none text-xl font-bold mb-12 -mt-4',
+        'outline-none text-xl font-bold mb-12 mt-2',
         'min-h-[1.2em]',
         'text-gray-500 dark:text-gray-400',
         isEmpty ? 'relative' : '',

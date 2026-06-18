@@ -2,7 +2,7 @@ import { FC, useCallback } from 'react'
 import clsx from 'clsx'
 import { CornerDownRight } from 'lucide-react'
 import { nanoid } from 'nanoid'
-import { Text } from 'slate'
+import { Editor, Path, Text, Transforms } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 const useIsMobile = () => false
@@ -10,7 +10,6 @@ import { useEditor } from '@/ui/editor/context'
 import { ElementProps } from '@/ui/editor/types'
 
 import { Block } from '../../block'
-import { blockApply } from '../../utils'
 import { useSubTitle } from '../subtitle/context'
 
 import { useTitle } from './context'
@@ -49,16 +48,18 @@ export const Title: FC<ElementProps<'title'>> = ({
               },
               onClick: () => {
                 const currentPath = ReactEditor.findPath(editor, element)
+                const nextPath = Path.next(currentPath)
 
-                blockApply({
-                  at: currentPath, // After the title.
+                Transforms.insertNodes(
                   editor,
-                  block: {
+                  {
                     id: nanoid(),
                     type: 'subtitle',
                     children: [{ text: '' }],
                   },
-                })
+                  { at: nextPath }
+                )
+                Transforms.select(editor, Editor.start(editor, nextPath))
               },
             },
           ]
@@ -105,10 +106,11 @@ export const Title: FC<ElementProps<'title'>> = ({
       element={element}
       {...attributes}
       className={clsx([
-        'relative group gap-2 mb-12',
+        'relative group gap-2',
+        isSubTitleMounted ? 'mb-0' : 'mb-12',
         //"pl-10 -ml-10",
       ])}
-      actionClassName="md:-translate-x-full pr-2 top-1.5"
+      actionClassName="md:-translate-x-full pr-2 top-1/2 -translate-y-1/2"
       actionItems={actionItems}
     >
       <h1

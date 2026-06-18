@@ -156,12 +156,11 @@ fn create_paper_dir(base_dir: &std::path::Path, id: &str) -> anyhow::Result<Path
   let default_content = serde_json::json!([
     {
       "type": "title",
-      "children": [{ "text": "Untitled Paper" }]
+      "children": [{ "text": "" }]
     },
     {
-      "type": "code-block",
-      "language": "rust",
-      "children": [{ "text": "println!(\"Hello from Simian Paper!\");" }]
+      "type": "paragraph",
+      "children": [{ "text": "" }]
     }
   ]);
   let _ = std::fs::write(

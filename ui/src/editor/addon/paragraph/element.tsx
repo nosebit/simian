@@ -41,6 +41,16 @@ export const Paragraph: FC<ElementProps<'paragraph'>> = ({
     return Path.equals(path, expectedFirstPath)
   }, [editor, element])
 
+  const isOnlyParagraph = useMemo(() => {
+    try {
+      const container = getBlockContainer(editor)
+      const paragraphs = container.node.children.filter((c: any) => c.type === 'paragraph')
+      return paragraphs.length === 1
+    } catch {
+      return false
+    }
+  }, [editor])
+
   // Check if the paragraph node is empty
   const isEmpty =
     element.children.length === 1 && (element.children[0] as Text).text === ''
@@ -53,8 +63,8 @@ export const Paragraph: FC<ElementProps<'paragraph'>> = ({
   const shouldRenderPlaceholder = !!emptyPlaceholder && isEmpty
 
   // We determine if it should be forced visible by React state
-  // (for mobile or keyboard focus)
-  const isForcedVisible = selected && focused
+  // (for mobile or keyboard focus, or if it's the only paragraph in the editor)
+  const isForcedVisible = (selected && focused) || isOnlyParagraph
 
   return (
     <Block

@@ -244,7 +244,7 @@ export function EditorPage({ id }: { id: string }) {
     title(),
     subtitle(),
     text(),
-    paragraph(),
+    paragraph({ emptyPlaceholder: "Type / for commands" }),
     heading(),
     column(),
     latexBlock(),
