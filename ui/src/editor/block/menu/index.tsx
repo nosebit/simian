@@ -2,6 +2,7 @@ import { FC, Fragment, useCallback, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { Node, Transforms } from 'slate'
 import { ReactEditor, useSlateStatic } from 'slate-react'
+import { TbFloatLeft, TbFloatRight } from 'react-icons/tb'
 
 import { WidthFull, WidthStandard, WidthWide } from './icons'
 import { Button } from '@/components/ui/button'
@@ -71,6 +72,7 @@ export const BlockMenu: FC<BlockMenuProps> = ({
         [ctx.blockId]: {
           ...(ctx.element.blocks?.[ctx.blockId] ?? {}),
           width,
+          float: undefined,
         },
       }
 
@@ -107,6 +109,27 @@ export const BlockMenu: FC<BlockMenuProps> = ({
     setIsMenuOpen(true)
   }, [])
 
+  const setFloat = useCallback(
+    (float: string | null) => {
+      const newBlocks = {
+        ...(ctx.element.blocks ?? {}),
+        [ctx.blockId]: {
+          ...(ctx.element.blocks?.[ctx.blockId] ?? {}),
+          float: float === null ? undefined : float,
+          ...(float ? { width: '50%' } : {}),
+        },
+      }
+
+      const path = ReactEditor.findPath(editor, ctx.element)
+      Transforms.setNodes(
+        editor,
+        { blocks: newBlocks } as Partial<Node>,
+        { at: path },
+      )
+    },
+    [editor, ctx.blockId, ctx.element],
+  )
+
   const handleMouseLeave = useCallback(() => {
     console.info('handling mouse leave')
     // Small delay (200ms) prevents the menu from flickering if the
@@ -123,33 +146,49 @@ export const BlockMenu: FC<BlockMenuProps> = ({
             [
               {
                 id: 'width-standard',
-                icon: (
-                  <WidthStandard className="h-4 w-4" />
-                ),
+                icon: <WidthStandard className="h-4 w-4" />,
                 isActive: !ctx.width || ctx.width === 'standard',
                 onClick: () => setWidth('standard'),
               },
+              ...(!ctx.float
+                ? [
+                    {
+                      id: 'width-wide',
+                      icon: <WidthWide className="h-4 w-4" />,
+                      isActive: ctx.width === 'wide',
+                      onClick: () => setWidth('wide'),
+                    },
+                    {
+                      id: 'width-full',
+                      icon: <WidthFull className="h-4 w-4" />,
+                      isActive: ctx.width === 'full',
+                      onClick: () => setWidth('full'),
+                    },
+                  ]
+                : []),
+            ] satisfies BlockMenuItem[],
+          ]
+        : []),
+      ...(ctx.isResizable
+        ? [
+            [
               {
-                id: 'width-wide',
-                icon: (
-                  <WidthWide className="h-4 w-4" />
-                ),
-                isActive: ctx.width === 'wide',
-                onClick: () => setWidth('wide'),
+                id: 'float-left',
+                icon: <TbFloatLeft className="h-4 w-4" />,
+                isActive: ctx.float === 'left',
+                onClick: () => setFloat('left'),
               },
               {
-                id: 'width-full',
-                icon: (
-                  <WidthFull className="h-4 w-4" />
-                ),
-                isActive: ctx.width === 'full',
-                onClick: () => setWidth('full'),
+                id: 'float-right',
+                icon: <TbFloatRight className="h-4 w-4" />,
+                isActive: ctx.float === 'right',
+                onClick: () => setFloat('right'),
               },
             ] satisfies BlockMenuItem[],
           ]
         : []),
     ],
-    [ctx, setWidth],
+    [ctx, setWidth, setFloat],
   )
 
   const resolvedItems = useMemo(() => {

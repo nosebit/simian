@@ -7,6 +7,7 @@ interface BlockContextValue {
   element: BlockElement
   isResizable: boolean
   width?: string
+  float?: string
 }
 
 export const BlockContext = createContext<BlockContextValue>({

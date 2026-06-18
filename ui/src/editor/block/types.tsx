@@ -11,6 +11,7 @@ export type BlockElement = Element & {
     string,
     {
       width?: string | null
+      float?: string | null
     }
   >
 }

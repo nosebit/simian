@@ -110,7 +110,7 @@ export const Title: FC<ElementProps<'title'>> = ({
         isSubTitleMounted ? 'mb-0' : 'mb-12',
         //"pl-10 -ml-10",
       ])}
-      actionClassName="md:-translate-x-full pr-2 top-1/2 -translate-y-1/2"
+      actionClassName="md:-translate-x-full pr-2 top-5"
       actionItems={actionItems}
     >
       <h1

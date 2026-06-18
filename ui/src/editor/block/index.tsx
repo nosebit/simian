@@ -93,8 +93,13 @@ export const Block = contextualize<BlockProps<ElementType>>()(
     const blockId = props.id ?? 'container'
     const isResizable = forcedWidth ? false : (isResizableProp ?? false)
 
-    // 1. SAFE WIDTH EXTRACTION (At the top)
+    // 1. SAFE WIDTH AND FLOAT EXTRACTION (At the top)
     const savedWidth = (element.blocks ?? {})[blockId]?.width ?? undefined
+    const float = (element.blocks ?? {})[blockId]?.float ?? undefined
+
+    const isFloatLeft = float === 'left'
+    const isFloatRight = float === 'right'
+    const isFloating = isFloatLeft || isFloatRight
 
     // 2. CHECK IF CUSTOM (Percentage/Pixel) vs KEYWORD
     // We use this to decide if useResizer should "own" the initial value
@@ -115,7 +120,10 @@ export const Block = contextualize<BlockProps<ElementType>>()(
             {
               blocks: {
                 ...(element.blocks ?? {}),
-                [blockId]: { width: finalWidth },
+                [blockId]: { 
+                  ...(element.blocks?.[blockId] ?? {}),
+                  width: finalWidth 
+                },
               },
             } as Partial<Node>,
             { at: path },
@@ -245,6 +253,7 @@ export const Block = contextualize<BlockProps<ElementType>>()(
           isResizable,
           element,
           width: currentWidth,
+          float,
         }}
       >
         <Tag
@@ -263,24 +272,28 @@ export const Block = contextualize<BlockProps<ElementType>>()(
 
             // WIDTH & CONSTRAINT LOGIC
             // 1. Full: breaks out completely
-            isFull && 'relative left-1/2 right-1/2 w-[100vw] max-w-none -translate-x-1/2 !mx-0',
+            isFull && !isFloating && 'relative left-1/2 right-1/2 w-[100vw] max-w-none -translate-x-1/2 !mx-0',
 
             // 2. Wide: breaks out to a larger predefined limit
-            isWide && 'relative left-1/2 right-1/2 w-[100vw] max-w-5xl -translate-x-1/2 !mx-0',
+            isWide && !isFloating && 'relative left-1/2 right-1/2 w-[100vw] max-w-5xl -translate-x-1/2 !mx-0',
 
             // 3. Standard: respects the main editor column (blockClass)
-            isStandard && blockClass,
+            isStandard && !isFloating && blockClass,
 
             // 4. Custom: breaks out but uses explicit width
-            isCustom && 'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
+            isCustom && !isFloating && 'relative left-1/2 right-1/2 max-w-none -translate-x-1/2 !mx-0',
+
+            // FLOAT LOGIC
+            isFloatLeft && 'float-left mr-10 pb-4 !clear-none',
+            isFloatRight && 'float-right ml-10 pb-4 !clear-none',
 
             // Mobile force-full
             isResizable && !isFull && 'max-md:w-full!',
 
             // 3. THE MAGIC TAILWIND RULE:
-            // When THIS specific element is hovered, find the DIRECT child
+            // When THIS specific element is hovered, find the child
             // with the [data-block-actions] attribute and make it opaque.
-            'hover:[&>div[data-block-actions]]:opacity-100',
+            'hover:[&>span>div[data-block-actions]]:opacity-100',
 
             // Hover Bridge for toolbar/actions
             "before:absolute before:content-[''] before:-left-12 before:top-0 before:w-12 before:h-full before:z-0",
@@ -309,24 +322,33 @@ export const Block = contextualize<BlockProps<ElementType>>()(
 
           {/* 2. Actions (Plus Button + Custom Actions) */}
           {mode === 'write' && actionItems.length > 0 && (
-            <div
-              data-block-actions
+            <span
               contentEditable={false}
               className={clsx(
-                'absolute left-0 top-0 translate-x-0',
-                'z-10 flex flex-col items-center gap-1',
-                'opacity-0 transition-opacity select-none',
-
-                'group-hover:opacity-100',
-                '[data-is-slot=true]_&_group-hover/slot:opacity-100',
-                !actionClassName && 'md:-translate-x-full pr-2',
-                actionClassName,
+                "z-10",
+                element.type === 'paragraph'
+                  ? "inline-block relative w-0 h-0 align-top"
+                  : "absolute left-0 top-0 w-0 h-0"
               )}
             >
-              {actionItems.map((actionItem) => (
-                <ActionTrigger key={actionItem.id} item={actionItem} />
-              ))}
-            </div>
+              <div
+                data-block-actions
+                className={clsx(
+                  'absolute left-0 translate-x-0',
+                  'flex flex-col items-center gap-1',
+                  'opacity-0 transition-opacity select-none',
+
+                  'group-hover:opacity-100',
+                  '[data-is-slot=true]_&_group-hover/slot:opacity-100',
+                  !actionClassName && 'md:-translate-x-full pr-2 top-0',
+                  actionClassName,
+                )}
+              >
+                {actionItems.map((actionItem) => (
+                  <ActionTrigger key={actionItem.id} item={actionItem} />
+                ))}
+              </div>
+            </span>
           )}
 
           <BlockMenu items={menuItems} MenuButton={MenuButton}>

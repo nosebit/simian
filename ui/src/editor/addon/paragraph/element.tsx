@@ -76,8 +76,8 @@ export const Paragraph: FC<ElementProps<'paragraph'>> = ({
         <span
           contentEditable={false}
           className={clsx([
-            'absolute pointer-events-none opacity-30 select-none',
-            isForcedVisible ? '' : 'hidden group-hover:block',
+            'pointer-events-none opacity-30 select-none inline-block w-0 whitespace-nowrap align-top',
+            isForcedVisible ? '' : 'hidden group-hover:inline-block',
           ])}
         >
           {emptyPlaceholder}
