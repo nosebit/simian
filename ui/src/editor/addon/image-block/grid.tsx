@@ -27,7 +27,7 @@ export const ImageBlockGrid: FC<Props> = ({
   handleUploadComplete,
   onCaptionChange,
 }) => {
-  const { focus } = useImageBlockElement();
+  const { focus, blockId } = useImageBlockElement();
   const isEditorSelected = useSelected();
   const isEditorFocused = useFocused();
   const readOnly = useReadOnly();
@@ -63,7 +63,10 @@ export const ImageBlockGrid: FC<Props> = ({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className={clsx([
+      <div 
+        id={`image-grid-root-${blockId}`}
+        className={clsx([
+        "relative",
         "border-2 border-transparent outline-2",
         isEditorSelected && isEditorFocused
           ? "outline-blue-400 dark:outline-blue-500"

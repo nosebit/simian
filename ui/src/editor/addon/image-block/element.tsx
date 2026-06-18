@@ -288,6 +288,8 @@ export const ImageBlock = contextualize<ElementProps<"image-block">>()([
 
   return (
     <ImageBlockElementContext.Provider value={{
+      blockId: (element as any).id,
+      itemsLength: items.length,
       focus,
       setFocus,
     }}>

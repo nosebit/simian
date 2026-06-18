@@ -19,11 +19,31 @@ import { useImageBlock, useImageBlockElement } from "../context";
 
 function FullscreenImage({ children }: { children: React.ReactNode }) {
   const { editor } = useEditor();
+
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   const root = typeof window !== "undefined"
     ? document.getElementById(`image-fullscreen-root-${editor.id}`)
     : null;
 
   if (!root) return null;
+
+  return createPortal(children, root);
+}
+
+function GridFullscreenImage({ children }: { children: React.ReactNode }) {
+  const { blockId } = useImageBlockElement();
+  const root = typeof window !== "undefined"
+    ? document.getElementById(`image-grid-root-${blockId}`)
+    : null;
+
+  if (!root) return <>{children}</>;
 
   return createPortal(children, root);
 }
@@ -36,7 +56,7 @@ export const ImageBaseItem = memo(forwardRef<HTMLDivElement, ImageBaseItemProps>
   onCaptionChange,
   ...props
 }, ref) => {
-  const { focus: focusBase, setFocus } = useImageBlockElement();
+  const { focus: focusBase, setFocus, itemsLength, blockId } = useImageBlockElement();
   const { fileUploadAction } = useImageBlock();
   const fileUpload = fileUploadAction;
   const [localUrl, setLocalUrl] = useState<string | null >(null)
@@ -111,7 +131,7 @@ export const ImageBaseItem = memo(forwardRef<HTMLDivElement, ImageBaseItemProps>
       className={clsx([
         "w-full h-full",
         focus ? "" : "hidden",
-        focus?.mode === "expand" ? "fixed top-0 left-0 z-[100]": "absolute"
+        focus?.mode === "expand" ? "fixed top-0 left-0 z-[100]": "absolute inset-0 z-50"
       ])}
       onClick={() => {
         if (focus) { setFocus(null); }
@@ -258,7 +278,7 @@ export const ImageBaseItem = memo(forwardRef<HTMLDivElement, ImageBaseItemProps>
 
         <img
           className={clsx([
-            "w-full h-full transition-all duration-300 object-contain",
+            "w-full h-full transition-all duration-300 object-cover",
           ])}
           width={item.width}
           height={item.height}
@@ -282,7 +302,11 @@ export const ImageBaseItem = memo(forwardRef<HTMLDivElement, ImageBaseItemProps>
         <FullscreenImage>
           {imageView}
         </FullscreenImage>
-      ) : imageView}
+      ) : focus && itemsLength > 1 ? (
+        <GridFullscreenImage>
+          {imageView}
+        </GridFullscreenImage>
+      ) : null}
     </>
   );
 }));

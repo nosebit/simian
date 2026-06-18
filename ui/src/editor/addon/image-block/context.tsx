@@ -30,11 +30,15 @@ export type ItemFocus = {
 }
 
 export type ImageBlockElementContextValue = {
+  blockId: string;
+  itemsLength: number;
   focus: ItemFocus | null;
   setFocus: (focus: ItemFocus | null) => void;
 };
 
 export const ImageBlockElementContext = createContext<ImageBlockElementContextValue>({
+  blockId: "",
+  itemsLength: 0,
   focus: null,
   setFocus: () => {},
 });
