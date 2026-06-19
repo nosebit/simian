@@ -659,7 +659,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   let wants_preview = dry
     || dialoguer::Confirm::with_theme(&theme)
       .with_prompt("Do you want to preview the paper locally before submitting?")
-      .default(true)
+      .default(false)
       .interact()?;
 
   if wants_preview {
@@ -892,7 +892,12 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       pr_json.get("html_url").and_then(|u| u.as_str()),
       pr_json.get("number").and_then(|n| n.as_u64()),
     ) {
-      let files_link = format!("{}/files", url);
+      use sha2::{Digest, Sha256};
+      let paper_path = format!("published/{}-v{}/paper.md", slug, version);
+      let mut hasher = Sha256::new();
+      hasher.update(paper_path.as_bytes());
+      let hash = format!("{:x}", hasher.finalize());
+      let files_link = format!("{}/files#diff-{}", url, hash);
       let new_body = format!(
         "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}-v{version}/index.html)\n\n### 📝 Review\n[Click here to review the Markdown source]({files_link})",
         slug = slug,
@@ -918,7 +923,89 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
   } else if pr_res.status() == reqwest::StatusCode::UNPROCESSABLE_ENTITY {
     let text = pr_res.text().await?;
     if text.contains("A pull request already exists") {
-      tracing::info!("✅ Successfully updated your existing Pull Request!");
+      let list_res = auth_client
+        .get(&format!(
+          "https://api.github.com/repos/nosebit/simian-papers/pulls?head=nosebit:{}&state=open",
+          branch_name
+        ))
+        .send()
+        .await?;
+
+      if list_res.status().is_success() {
+        let pulls: Vec<serde_json::Value> = list_res.json().await?;
+        if let Some(pr) = pulls.first() {
+          if let (Some(url), Some(number)) = (
+            pr.get("html_url").and_then(|u| u.as_str()),
+            pr.get("number").and_then(|n| n.as_u64()),
+          ) {
+            use sha2::{Digest, Sha256};
+            let paper_path = format!("published/{}-v{}/paper.md", slug, version);
+            let mut hasher = Sha256::new();
+            hasher.update(paper_path.as_bytes());
+            let hash = format!("{:x}", hasher.finalize());
+            let files_link = format!("{}/files#diff-{}", url, hash);
+            let old_body = pr.get("body").and_then(|b| b.as_str()).unwrap_or("");
+            let mut new_body = old_body.to_string();
+
+            let preview_url = format!(
+              "https://raw.githack.com/nosebit/simian-papers/{}/published/{}-v{}/index.html",
+              branch_name, slug, version
+            );
+            let preview_text = format!(
+              "### 📄 Preview\n[Click here to preview the rendered paper]({})",
+              preview_url
+            );
+
+            let review_text = format!(
+              "### 📝 Review\n[Click here to review the Markdown source]({})",
+              files_link
+            );
+
+            let re_preview = regex::Regex::new(r"### 📄 Preview\n\[.*?\]\(.*?\)").unwrap();
+            if re_preview.is_match(&new_body) {
+              new_body = re_preview
+                .replace(&new_body, preview_text.as_str())
+                .to_string();
+            } else {
+              let sep = if new_body.is_empty() { "" } else { "\n\n" };
+              new_body.push_str(&format!("{}{}", sep, preview_text));
+            }
+
+            let re_review = regex::Regex::new(r"### 📝 Review\n\[.*?\]\(.*?\)").unwrap();
+            if re_review.is_match(&new_body) {
+              new_body = re_review
+                .replace(&new_body, review_text.as_str())
+                .to_string();
+            } else {
+              let sep = if new_body.is_empty() { "" } else { "\n\n" };
+              new_body.push_str(&format!("{}{}", sep, review_text));
+            }
+
+            let _ = auth_client
+              .patch(&format!(
+                "https://api.github.com/repos/nosebit/simian-papers/pulls/{}",
+                number
+              ))
+              .json(&serde_json::json!({
+                "body": new_body
+              }))
+              .send()
+              .await;
+
+            tracing::info!(
+              "✅ Successfully updated your existing Pull Request: {}",
+              url
+            );
+            let _ = open::that(url);
+          } else {
+            tracing::info!("✅ Successfully updated your existing Pull Request!");
+          }
+        } else {
+          tracing::info!("✅ Successfully updated your existing Pull Request!");
+        }
+      } else {
+        tracing::info!("✅ Successfully updated your existing Pull Request!");
+      }
     } else {
       anyhow::bail!("Failed to open PR: {:?}", text);
     }
