@@ -32,7 +32,13 @@ fn main() {
   let _ = std::fs::remove_dir_all(&dest_ui);
   copy_dir_all("ui", &dest_ui).expect("Failed to copy ui directory");
 
-  let status = Command::new("npm")
+  let npm_cmd = if cfg!(target_os = "windows") {
+    "npm.cmd"
+  } else {
+    "npm"
+  };
+
+  let status = Command::new(npm_cmd)
     .current_dir(&dest_ui)
     .args(["install"])
     .status()
@@ -42,7 +48,7 @@ fn main() {
     panic!("npm install failed");
   }
 
-  let status = Command::new("npm")
+  let status = Command::new(npm_cmd)
     .current_dir(&dest_ui)
     .args(["run", "build"])
     .status()
