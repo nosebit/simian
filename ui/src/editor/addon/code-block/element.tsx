@@ -262,43 +262,45 @@ export const CodeBlock = contextualize<ElementProps<'code-block'>>()(
             contentEditable={false}
             className="flex items-center justify-between p-2 pb-0 select-none"
           >
-            <Select
-              value={element.language || 'rust'}
-              onValueChange={(val) => {
-                if (mode === 'read') return
-                const path = ReactEditor.findPath(editor, element)
-                Transforms.setNodes(
-                  editor,
-                  { language: val } as Partial<Node>,
-                  { at: path },
-                )
-              }}
-            >
-              <SelectTrigger
-                disabled={mode === 'read'}
-                className="h-7 w-auto min-w-[90px] text-xs font-mono !bg-transparent transition-colors border !border-white/20 dark:!border-white/10 shadow-none text-muted-foreground focus:!ring-0 focus:!ring-offset-0 !outline-none"
+            {mode === 'read' ? (
+              <div className="flex items-center h-7 px-3 text-xs font-mono border border-black/10 dark:border-white/10 rounded-md text-muted-foreground">
+                {element.language || 'rust'}
+              </div>
+            ) : (
+              <Select
+                value={element.language || 'rust'}
+                onValueChange={(val) => {
+                  const path = ReactEditor.findPath(editor, element)
+                  Transforms.setNodes(
+                    editor,
+                    { language: val } as Partial<Node>,
+                    { at: path },
+                  )
+                }}
               >
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  'rust',
-                  'python',
-                  'javascript',
-                  'typescript',
-                  'json',
-                  'bash',
-                ].map((lang) => (
-                  <SelectItem
-                    key={lang}
-                    value={lang}
-                    className="text-xs font-mono"
-                  >
-                    {lang}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger className="h-7 w-auto min-w-[90px] text-xs font-mono !bg-transparent transition-colors border !border-black/10 dark:!border-white/10 shadow-none text-muted-foreground focus:!ring-0 focus:!ring-offset-0 !outline-none">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent className="border-black/10 dark:border-white/10">
+                  {[
+                    'rust',
+                    'python',
+                    'javascript',
+                    'typescript',
+                    'json',
+                    'bash',
+                  ].map((lang) => (
+                    <SelectItem
+                      key={lang}
+                      value={lang}
+                      className="text-xs font-mono"
+                    >
+                      {lang}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             {/* Execute Button */}
             {(element.language === 'rust' || !element.language) &&

@@ -246,6 +246,7 @@ export const ImageBaseItem = memo(
             ref={ref}
             className={clsx([
               'relative group',
+              itemsLength > 1 && 'cursor-pointer',
               'active:cursor-grabbing',
               className,
             ])}

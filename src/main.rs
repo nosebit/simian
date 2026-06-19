@@ -248,8 +248,11 @@ async fn main() -> anyhow::Result<()> {
       PaperCommands::Open { id, dev } => {
         simian::studio::run(id.clone(), *dev).await?;
       }
-      PaperCommands::Submit { id, dry } => {
-        simian::paper::submit(id.clone(), *dry).await?;
+      PaperCommands::Submit { id } => {
+        simian::paper::submit(id.clone(), false).await?;
+      }
+      PaperCommands::Preview { id } => {
+        simian::paper::submit(id.clone(), true).await?;
       }
       PaperCommands::Fork { id } => {
         tracing::info!("Forking paper: {}", id);

@@ -336,7 +336,7 @@ export function EditorPage({ id }: { id: string }) {
                         window.location.href = `/${id}-v${val}/`
                       }}
                     >
-                      <SelectTrigger className="h-7 px-2 py-1 text-xs font-mono w-auto min-w-[110px] border-black/10 dark:border-white/10 shadow-none bg-transparent">
+                      <SelectTrigger className="h-7 w-auto min-w-[110px] text-xs font-mono !bg-transparent transition-colors border !border-black/10 dark:!border-white/10 shadow-none text-muted-foreground focus:!ring-0 focus:!ring-offset-0 !outline-none">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <History size={14} className="shrink-0" />
                           <span>
@@ -344,7 +344,7 @@ export function EditorPage({ id }: { id: string }) {
                           </span>
                         </div>
                       </SelectTrigger>
-                      <SelectContent className="font-mono text-xs max-h-64">
+                      <SelectContent className="font-mono text-xs max-h-64 border-black/10 dark:border-white/10">
                         {versions.map((commit, i) => {
                           const ver = versions.length - i
                           const date = new Date(

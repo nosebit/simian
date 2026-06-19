@@ -877,8 +877,9 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       "head": branch_name,
       "base": "main",
       "body": format!(
-        "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}/index.html)",
+        "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}-v{version}/index.html)",
         slug = slug,
+        version = version,
         branch_name = branch_name
       )
     }))
@@ -887,7 +888,30 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
 
   if pr_res.status().is_success() {
     let pr_json: serde_json::Value = pr_res.json().await?;
-    if let Some(url) = pr_json.get("html_url").and_then(|u| u.as_str()) {
+    if let (Some(url), Some(number)) = (
+      pr_json.get("html_url").and_then(|u| u.as_str()),
+      pr_json.get("number").and_then(|n| n.as_u64()),
+    ) {
+      let files_link = format!("{}/files", url);
+      let new_body = format!(
+        "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}-v{version}/index.html)\n\n### 📝 Review\n[Click here to review the Markdown source]({files_link})",
+        slug = slug,
+        version = version,
+        branch_name = branch_name,
+        files_link = files_link
+      );
+
+      let _ = auth_client
+        .patch(&format!(
+          "https://api.github.com/repos/nosebit/simian-papers/pulls/{}",
+          number
+        ))
+        .json(&serde_json::json!({
+          "body": new_body
+        }))
+        .send()
+        .await;
+
       tracing::info!("Successfully opened Pull Request: {}", url);
       let _ = open::that(url);
     }
