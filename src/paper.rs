@@ -212,7 +212,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
 
   tracing::info!("Parsing source.smn and collecting active plots...");
   let source_content = std::fs::read_to_string(&source_file)?;
-  let ast: serde_json::Value = serde_json::from_str(&source_content)?;
+  let mut ast: serde_json::Value = serde_json::from_str(&source_content)?;
 
   fn extract_markdown_text(children: &[serde_json::Value]) -> String {
     let mut text = String::new();
@@ -397,7 +397,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
 
   let mut markdown = format!("# Paper: {}\n\n", title_text);
 
-  if let Some(blocks) = ast.as_array() {
+  if let Some(blocks) = ast.as_array_mut() {
     for block in blocks {
       let block_type = block.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
@@ -416,6 +416,37 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
           String::new()
         };
         markdown.push_str(&format!("$$\n{}\n$$\n\n", code));
+      } else if block_type == "image-block" {
+        if let Some(items) = block.get_mut("items").and_then(|v| v.as_array_mut()) {
+          for item in items {
+            if let Some(url) = item.get("url").and_then(|v| v.as_str()) {
+              if url.contains("/assets/") {
+                let filename = if let Some(idx) = url.rfind('/') {
+                  url[idx + 1..].to_string()
+                } else {
+                  url.to_string()
+                };
+
+                let src_path = paper_dir.join("assets").join(&filename);
+                let dest_path = bundle_assets.join(&filename);
+
+                if src_path.exists() {
+                  let _ = std::fs::copy(&src_path, &dest_path);
+                }
+
+                let alt = item
+                  .get("alt")
+                  .and_then(|v| v.as_str())
+                  .unwrap_or("Image")
+                  .to_string();
+                markdown.push_str(&format!("\n![{alt}](./assets/{filename})\n"));
+
+                item["url"] = serde_json::json!(format!("./assets/{}", filename));
+              }
+            }
+          }
+          markdown.push('\n');
+        }
       } else if block_type == "code-block" {
         let mut code = String::new();
         if let Some(children) = block.get("children").and_then(|v| v.as_array()) {
