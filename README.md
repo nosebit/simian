@@ -22,7 +22,7 @@ The easiest way to install Simian on macOS or Linux is via our official installa
 curl -fsSL https://simian.sh/install.sh | bash
 ```
 
-Alternatively, you can install the CLI using Cargo:
+Alternatively, you can install the Simian as a Rust package using Cargo:
 
 ```bash
 cargo install simian
