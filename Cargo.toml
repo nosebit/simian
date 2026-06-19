@@ -5,6 +5,10 @@ edition = "2024"
 description = "A command-line tool for exploring and implementing Machine Learning algorithms in Rust."
 license = "MIT"
 repository = "https://github.com/nosebit/simian"
+exclude = [
+  "ui/node_modules",
+  "ui/dist"
+]
 
 [dependencies]
 anyhow = "1.0.102"
@@ -33,7 +37,7 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 dialoguer = "0.12.0"
 slug = "0.1.6"
-rust-embed = { version = "8.4.0", features = ["compression"] }
+rust-embed = { version = "8.4.0", features = ["interpolate-folder-path"] }
 mime_guess = "2.0.4"
 chrono = { version = "0.4.45", features = ["serde"] }
 headless_chrome = { version = "1.0.22", features = ["fetch"] }

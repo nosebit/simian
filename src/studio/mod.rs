@@ -16,7 +16,7 @@ use tokio::io::AsyncReadExt;
 use tower_http::services::{ServeDir, ServeFile};
 
 #[derive(rust_embed::RustEmbed)]
-#[folder = "ui/dist/"]
+#[folder = "$OUT_DIR/ui/dist/"]
 pub struct UiAssets;
 
 async fn embedded_serve(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
