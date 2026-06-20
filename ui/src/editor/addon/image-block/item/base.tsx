@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useMediaQuery } from '@uidotdev/usehooks'
 import {
   forwardRef,
   memo,
@@ -64,6 +65,7 @@ export const ImageBaseItem = memo(
       ref,
     ) => {
       const { focus: focusBase, setFocus, itemsLength } = useImageBlockElement()
+      const isMobile = useMediaQuery('only screen and (max-width : 768px)')
       const { fileUploadAction } = useImageBlock()
       const fileUpload = fileUploadAction
       const [localUrl, setLocalUrl] = useState<string | null>(null)
@@ -266,33 +268,36 @@ export const ImageBaseItem = memo(
               }
             }}
             onClick={() => {
+              if (isMobile) {
+                setFocus({ ...(focus ?? { id: item.id }), mode: 'expand' })
+                return
+              }
               if (props.disabled) return
               // Toggle focus to this item.
               setFocus(focus ? null : { id: item.id })
             }}
           >
-            {!props.disabled && (
-              <div
-                className={clsx([
-                  'absolute top-2 left-2 z-1',
-                  'hidden group-hover:block',
-                ])}
-              >
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault()
-                    e.stopPropagation()
+            <div
+              className={clsx([
+                'absolute top-2 left-2 z-1',
+                'hidden md:group-hover:block',
+                focus?.mode === 'expand' && 'hidden',
+              ])}
+            >
+              <Button
+                variant="default"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault()
+                  e.stopPropagation()
 
-                    setFocus({ ...(focus ?? { id: item.id }), mode: 'expand' })
-                  }}
-                >
-                  <Expand />
-                </Button>
-              </div>
-            )}
+                  setFocus({ ...(focus ?? { id: item.id }), mode: 'expand' })
+                }}
+              >
+                <Expand />
+              </Button>
+            </div>
 
             <img
               className={clsx([
