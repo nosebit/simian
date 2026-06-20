@@ -119,49 +119,51 @@ export function ImageBlockCarousel({
         </div>
 
         {/* Controls */}
-        <div
-          className={clsx([
-            'flex items-cente justify-between',
-            'absolute left-2 right-2 bottom-2',
-          ])}
-        >
-          {/* Prev / Next buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={scrollPrev}
-              className="rounded-full text-white bg-black p-0.5"
-            >
-              <CircleChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={scrollNext}
-              className="rounded-full text-white bg-black p-0.5"
-            >
-              <CircleChevronRight className="h-6 w-6" />
-            </button>
-          </div>
-
-          {/* Dots */}
+        {items.length > 1 && (
           <div
             className={clsx([
-              'flex items-center gap-0.5 rounded-full bg-black px-2 py-0.5',
+              'flex items-center justify-between',
+              'absolute left-2 right-2 bottom-2',
             ])}
           >
-            {items.map((_, idx) => (
+            {/* Prev / Next buttons */}
+            <div className="flex items-center gap-1">
               <button
-                key={idx}
-                onClick={() => emblaApi && emblaApi.scrollTo(idx)}
-                className={clsx(
-                  'h-2 w-2 rounded-full transition-colors',
-                  'border border-white',
-                  selectedIndex === idx ? 'bg-white' : '',
-                )}
-              />
-            ))}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={scrollPrev}
+                className="rounded-full text-white bg-black p-0.5"
+              >
+                <CircleChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={scrollNext}
+                className="rounded-full text-white bg-black p-0.5"
+              >
+                <CircleChevronRight className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Dots */}
+            <div
+              className={clsx([
+                'flex items-center gap-0.5 rounded-full bg-black px-2 py-0.5',
+              ])}
+            >
+              {items.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => emblaApi && emblaApi.scrollTo(idx)}
+                  className={clsx(
+                    'h-2 w-2 rounded-full transition-colors',
+                    'border border-white',
+                    selectedIndex === idx ? 'bg-white' : '',
+                  )}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <AnimatePresence mode="wait">
@@ -172,6 +174,7 @@ export function ImageBlockCarousel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="w-full min-w-0"
           >
             <Caption
               itemId={`standalone-${activeItem.id}`}

@@ -419,30 +419,30 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       } else if block_type == "image-block" {
         if let Some(items) = block.get_mut("items").and_then(|v| v.as_array_mut()) {
           for item in items {
-            if let Some(url) = item.get("url").and_then(|v| v.as_str()) {
-              if url.contains("/assets/") {
-                let filename = if let Some(idx) = url.rfind('/') {
-                  url[idx + 1..].to_string()
-                } else {
-                  url.to_string()
-                };
+            if let Some(url) = item.get("url").and_then(|v| v.as_str())
+              && url.contains("/assets/")
+            {
+              let filename = if let Some(idx) = url.rfind('/') {
+                url[idx + 1..].to_string()
+              } else {
+                url.to_string()
+              };
 
-                let src_path = paper_dir.join("assets").join(&filename);
-                let dest_path = bundle_assets.join(&filename);
+              let src_path = paper_dir.join("assets").join(&filename);
+              let dest_path = bundle_assets.join(&filename);
 
-                if src_path.exists() {
-                  let _ = std::fs::copy(&src_path, &dest_path);
-                }
-
-                let alt = item
-                  .get("alt")
-                  .and_then(|v| v.as_str())
-                  .unwrap_or("Image")
-                  .to_string();
-                markdown.push_str(&format!("\n![{alt}](./assets/{filename})\n"));
-
-                item["url"] = serde_json::json!(format!("./assets/{}", filename));
+              if src_path.exists() {
+                let _ = std::fs::copy(&src_path, &dest_path);
               }
+
+              let alt = item
+                .get("alt")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Image")
+                .to_string();
+              markdown.push_str(&format!("\n![{alt}](./assets/{filename})\n"));
+
+              item["url"] = serde_json::json!(format!("./assets/{}", filename));
             }
           }
           markdown.push('\n');
@@ -897,7 +897,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       let mut hasher = Sha256::new();
       hasher.update(paper_path.as_bytes());
       let hash = format!("{:x}", hasher.finalize());
-      let files_link = format!("{}/files#diff-{}", url, hash);
+      let files_link = format!("{}/changes#diff-{}", url, hash);
       let new_body = format!(
         "Automatic submission of paper `{slug}` via Simian CLI.\n\n### 📄 Preview\n[Click here to preview the rendered paper](https://raw.githack.com/nosebit/simian-papers/{branch_name}/published/{slug}-v{version}/index.html)\n\n### 📝 Review\n[Click here to review the Markdown source]({files_link})",
         slug = slug,
@@ -907,7 +907,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
       );
 
       let _ = auth_client
-        .patch(&format!(
+        .patch(format!(
           "https://api.github.com/repos/nosebit/simian-papers/pulls/{}",
           number
         ))
@@ -924,7 +924,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
     let text = pr_res.text().await?;
     if text.contains("A pull request already exists") {
       let list_res = auth_client
-        .get(&format!(
+        .get(format!(
           "https://api.github.com/repos/nosebit/simian-papers/pulls?head=nosebit:{}&state=open",
           branch_name
         ))
@@ -943,7 +943,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
             let mut hasher = Sha256::new();
             hasher.update(paper_path.as_bytes());
             let hash = format!("{:x}", hasher.finalize());
-            let files_link = format!("{}/files#diff-{}", url, hash);
+            let files_link = format!("{}/changes#diff-{}", url, hash);
             let old_body = pr.get("body").and_then(|b| b.as_str()).unwrap_or("");
             let mut new_body = old_body.to_string();
 
@@ -982,7 +982,7 @@ pub async fn submit(id: String, dry: bool) -> Result<()> {
             }
 
             let _ = auth_client
-              .patch(&format!(
+              .patch(format!(
                 "https://api.github.com/repos/nosebit/simian-papers/pulls/{}",
                 number
               ))

@@ -266,30 +266,33 @@ export const ImageBaseItem = memo(
               }
             }}
             onClick={() => {
+              if (props.disabled) return
               // Toggle focus to this item.
               setFocus(focus ? null : { id: item.id })
             }}
           >
-            <div
-              className={clsx([
-                'absolute top-2 left-2 z-1',
-                'hidden group-hover:block',
-              ])}
-            >
-              <Button
-                variant="default"
-                size="icon"
-                className="h-8 w-8"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-
-                  setFocus({ ...(focus ?? { id: item.id }), mode: 'expand' })
-                }}
+            {!props.disabled && (
+              <div
+                className={clsx([
+                  'absolute top-2 left-2 z-1',
+                  'hidden group-hover:block',
+                ])}
               >
-                <Expand />
-              </Button>
-            </div>
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    setFocus({ ...(focus ?? { id: item.id }), mode: 'expand' })
+                  }}
+                >
+                  <Expand />
+                </Button>
+              </div>
+            )}
 
             <img
               className={clsx([
