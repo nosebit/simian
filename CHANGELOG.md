@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/nosebit/simian/compare/v0.2.1...v0.2.2) - 2026-06-26
+
+### Fixed
+
+- *(editor/image)* in mobile click on image to full expand
+- *(editor)* better padding in mobile, remove carousel nav/dots when it have only one image
+- *(paper/submit)* preview link and add missing markdown link to be reviewed
+- *(paper/submit)* add all images to the paper bundle
+
+### Other
+
+- minor improvements on the ui of published paper and better submission PR description
+- rephrase the installation of simian as a Rust package
+
 ## [0.2.1](https://github.com/nosebit/simian/compare/v0.2.0...v0.2.1) - 2026-06-19
 
 ### Fixed
